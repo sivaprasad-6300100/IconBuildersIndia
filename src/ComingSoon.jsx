@@ -180,7 +180,7 @@ export default function ComingSoon() {
           fontSize: "0.65rem", letterSpacing: "0.5em", color: "#c9a84c",
           marginBottom: "0.6rem", textTransform: "uppercase",
         }}>
-          iconbuilderindia.com
+          iconbuildersindia.com
         </div>
         <div style={{
           fontSize: "clamp(3rem, 9vw, 5.5rem)",
@@ -191,8 +191,8 @@ export default function ComingSoon() {
             : { textShadow: "0 0 50px rgba(201,168,76,0.25)" }),
           transition: "all 0.1s",
         }}>
-          <span style={{ color: "#e8d5a3" }}>RELIA</span>
-          <span style={{ color: "#c9a84c" }}>STATE</span>
+          <span style={{ color: "#e8d5a3" }}>REAL</span>
+          <span style={{ color: "#c9a84c" }}>ESTATE</span>
         </div>
         <div style={{
           fontSize: "0.72rem", letterSpacing: "0.22em", color: "#6a8aaa",
@@ -463,7 +463,7 @@ export default function ComingSoon() {
 
           {/* WhatsApp */}
           <a href="https://wa.me/916300100420" style={{
-            display: "inline-flex", alignItems: "center", gap: "0.45rem",
+            display:le "inline-flex", alignItems: "center", gap: "0.45rem",
             fontSize: "0.75rem", color: "#4aab68", textDecoration: "none",
             letterSpacing: "0.04em", marginTop: "1rem",
           }}>
