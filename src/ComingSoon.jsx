@@ -463,7 +463,7 @@ export default function ComingSoon() {
 
           {/* WhatsApp */}
           <a href="https://wa.me/916300100420" style={{
-            display:le "inline-flex", alignItems: "center", gap: "0.45rem",
+            display: "inline-flex", alignItems: "center", gap: "0.45rem",
             fontSize: "0.75rem", color: "#4aab68", textDecoration: "none",
             letterSpacing: "0.04em", marginTop: "1rem",
           }}>
