@@ -25,11 +25,25 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor:    ['react', 'react-dom', 'react-router-dom'],
-          three:     ['three', '@react-three/fiber', '@react-three/drei'],
-          animation: ['gsap', 'framer-motion'],
-          charts:    ['recharts'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('three') || id.includes('@react-three')) {
+              return 'three'
+            }
+            if (id.includes('gsap') || id.includes('framer-motion')) {
+              return 'animation'
+            }
+            if (id.includes('recharts')) {
+              return 'charts'
+            }
+            if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('react-router-dom')
+            ) {
+              return 'vendor'
+            }
+          }
         },
       },
     },
