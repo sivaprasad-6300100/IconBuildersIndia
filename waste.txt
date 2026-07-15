@@ -1,0 +1,188 @@
+import { useRef, useMemo } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { Points, PointMaterial } from '@react-three/drei'
+import * as THREE from 'three'
+
+// ── Starfield ────────────────────────────────────────────────────────────
+function Starfield({ count = 500 }) {
+  const ref = useRef()
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      arr[i * 3]     = (Math.random() - 0.5) * 24
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 14 + 3
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 20 - 4
+    }
+    return arr
+  }, [count])
+
+  useFrame((state) => {
+    if (!ref.current) return
+    ref.current.rotation.y = state.clock.elapsedTime * 0.015
+  })
+
+  return (
+    <Points ref={ref} positions={positions} stride={3} frustumCulled={false}>
+      <PointMaterial
+        transparent
+        color="#f0d080"
+        size={0.025}
+        sizeAttenuation
+        depthWrite={false}
+        opacity={0.5}
+      />
+    </Points>
+  )
+}
+
+// ── One building ────────────────────────────────────────────────────────
+function Building({ x, w, d, h, floors, groundY = -1.6, litRoof = false, mirrored = false }) {
+  const boxGeo = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d])
+  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(boxGeo), [boxGeo])
+
+  const floorLines = useMemo(() => {
+    const lines = []
+    for (let i = 1; i < floors; i++) lines.push(groundY + (h / floors) * i)
+    return lines
+  }, [floors, h, groundY])
+
+  // mirrored = the faint reflection copy on the "floor" — dimmer, no roof glow
+  const bodyOpacity = mirrored ? 0.18 : 0.55
+  const edgeOpacity = mirrored ? 0.22 : 0.7
+  const floorOpacity = mirrored ? 0.1 : 0.35
+  const roofOpacity = mirrored ? 0.15 : 0.55
+
+  return (
+    <group position={[x, 0, 0]}>
+      <mesh position={[0, groundY + h / 2, 0]} geometry={boxGeo}>
+        <meshStandardMaterial
+          color="#050505"
+          transparent
+          opacity={bodyOpacity}
+          metalness={0.85}
+          roughness={0.25}
+        />
+      </mesh>
+
+      <lineSegments position={[0, groundY + h / 2, 0]} geometry={edgesGeo}>
+        <lineBasicMaterial color="#c9a227" transparent opacity={edgeOpacity} />
+      </lineSegments>
+
+      {floorLines.map((y, i) => (
+        <mesh key={i} position={[0, y, 0]}>
+          <boxGeometry args={[w * 1.01, 0.015, d * 1.01]} />
+          <meshBasicMaterial color="#f0d080" transparent opacity={floorOpacity} />
+        </mesh>
+      ))}
+
+      <mesh position={[0, groundY + h + (w * 0.28), 0]} rotation={[0, Math.PI / 4, 0]}>
+        <coneGeometry args={[w * 0.75, w * 0.55, 4]} />
+        <meshBasicMaterial color="#f0d080" wireframe transparent opacity={roofOpacity} />
+      </mesh>
+
+      {litRoof && !mirrored && (
+        <pointLight
+          position={[0, groundY + h + 0.6, 0]}
+          color="#f0d080"
+          intensity={1.4}
+          distance={4}
+        />
+      )}
+    </group>
+  )
+}
+
+// ── Live tracking satellite accent ─────────────────────────────────────
+function TrackingSatellite({ position }) {
+  const ref = useRef()
+  useFrame((state) => {
+    if (!ref.current) return
+    ref.current.rotation.z = state.clock.elapsedTime * 0.4
+  })
+  return (
+    <group position={position}>
+      <mesh ref={ref}>
+        <torusGeometry args={[0.14, 0.006, 8, 32]} />
+        <meshBasicMaterial color="#c9a227" transparent opacity={0.6} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.035, 12, 12]} />
+        <meshBasicMaterial color="#f0d080" />
+      </mesh>
+    </group>
+  )
+}
+
+const BUILDING_LAYOUT = [
+  { x: -3.4, w: 0.9,  d: 0.9,  h: 1.6, floors: 4 },
+  { x: -1.7, w: 1.0,  d: 1.0,  h: 2.6, floors: 6 },
+  { x: 0.4,  w: 1.25, d: 1.25, h: 3.9, floors: 9, litRoof: true },
+  { x: 2.4,  w: 0.95, d: 0.95, h: 2.2, floors: 5 },
+]
+
+// ── Full skyline — now continuously, slowly rotating with a gentle bob ──
+function BuildingSkyline() {
+  const groupRef = useRef()
+
+  useFrame((state) => {
+    if (!groupRef.current) return
+    // continuous slow rotation — one full turn roughly every ~60s
+    groupRef.current.rotation.y = state.clock.elapsedTime * 0.1
+    // gentle overall float, on top of the rotation
+    groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.35) * 0.06
+  })
+
+  return (
+    <group ref={groupRef}>
+      {BUILDING_LAYOUT.map((b, i) => (
+        <Building key={i} {...b} />
+      ))}
+
+      {/* faint mirrored reflection beneath the ground line — premium touch */}
+      <group scale={[1, -1, 1]} position={[0, -3.2, 0]}>
+        {BUILDING_LAYOUT.map((b, i) => (
+          <Building key={`refl-${i}`} {...b} mirrored />
+        ))}
+      </group>
+
+      {/* reflective ground plane */}
+      <mesh position={[-0.5, -1.62, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[9, 4]} />
+        <meshStandardMaterial
+          color="#0a0a0a"
+          metalness={0.9}
+          roughness={0.15}
+          transparent
+          opacity={0.6}
+        />
+      </mesh>
+
+      {/* ground accent line */}
+      <mesh position={[-0.5, -1.615, 0]}>
+        <boxGeometry args={[7.2, 0.02, 0.02]} />
+        <meshBasicMaterial color="#c9a227" transparent opacity={0.5} />
+      </mesh>
+
+      <TrackingSatellite position={[1.6, 2.6, 0.6]} />
+    </group>
+  )
+}
+
+// ── Main export ──────────────────────────────────────────────────────────
+export default function ParticleField() {
+  return (
+    <Canvas
+      camera={{ position: [0, 0.4, 9], fov: 50 }}
+      style={{ position: 'absolute', inset: 0 }}
+      gl={{ antialias: true, alpha: true }}
+    >
+      <ambientLight intensity={0.25} />
+      <pointLight position={[6, 6, 8]} intensity={0.6} color="#c9a227" />
+      <pointLight position={[-6, -2, -4]} intensity={0.3} color="#1e4470" />
+
+      <BuildingSkyline />
+      <Starfield count={500} />
+    </Canvas>
+  )
+}
