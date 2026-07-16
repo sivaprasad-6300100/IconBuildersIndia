@@ -17,10 +17,7 @@ export default function HeroSection() {
            so buildings never collide with the headline above them */
         .hero__canvas {
           position: absolute;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          height: 55%;
+          inset: 0;
         }
 
         .hero__vignette {

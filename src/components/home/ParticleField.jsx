@@ -36,6 +36,125 @@ function Starfield({ count = 400 }) {
   )
 }
 
+// ── Constellation Lines — visible but calm background layer ───────────────
+function ConstellationLines({ count = 150, maxDistance = 3.5, travelers = 50, speed = 0.25 }) {
+  const lineRef = useRef()
+  const lineMatRef = useRef()
+  const travelRef = useRef()
+
+  const { linePositions, segmentPairs } = useMemo(() => {
+    const arr = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      arr[i * 3]     = (Math.random() - 0.5) * 24
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 12 + 3
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 20 - 4
+    }
+
+    const segs = []
+    const pairs = []
+    for (let i = 0; i < count; i++) {
+      for (let j = i + 1; j < count; j++) {
+        const dx = arr[i * 3]     - arr[j * 3]
+        const dy = arr[i * 3 + 1] - arr[j * 3 + 1]
+        const dz = arr[i * 3 + 2] - arr[j * 3 + 2]
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+        if (dist < maxDistance) {
+          segs.push(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2])
+          segs.push(arr[j * 3], arr[j * 3 + 1], arr[j * 3 + 2])
+          pairs.push([
+            new THREE.Vector3(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]),
+            new THREE.Vector3(arr[j * 3], arr[j * 3 + 1], arr[j * 3 + 2]),
+          ])
+        }
+      }
+    }
+
+    return { linePositions: new Float32Array(segs), segmentPairs: pairs }
+  }, [count, maxDistance])
+
+  const travelData = useMemo(() => {
+    if (segmentPairs.length === 0) return []
+    const n = Math.min(travelers, segmentPairs.length)
+    return Array.from({ length: n }, () => ({
+      pair: segmentPairs[Math.floor(Math.random() * segmentPairs.length)],
+      offset: Math.random(),
+      speed: speed * (0.6 + Math.random() * 0.8),
+    }))
+  }, [segmentPairs, travelers, speed])
+
+  const travelPositions = useMemo(
+    () => new Float32Array(travelData.length * 3),
+    [travelData]
+  )
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+
+    if (lineRef.current) lineRef.current.rotation.y = t * 0.015
+    if (lineMatRef.current) {
+      // visible pulsing glow — brighter than background dust, dimmer than a spotlight
+      lineMatRef.current.opacity = 0.22 + Math.sin(t * 0.6) * 0.08
+    }
+
+    if (travelRef.current && travelData.length) {
+      for (let i = 0; i < travelData.length; i++) {
+        const d = travelData[i]
+        const progress = (t * d.speed + d.offset) % 1
+        const p = new THREE.Vector3().lerpVectors(d.pair[0], d.pair[1], progress)
+        travelPositions[i * 3]     = p.x
+        travelPositions[i * 3 + 1] = p.y
+        travelPositions[i * 3 + 2] = p.z
+      }
+      travelRef.current.geometry.attributes.position.needsUpdate = true
+      travelRef.current.rotation.y = t * 0.015
+    }
+  })
+
+  return (
+    <group>
+      <lineSegments ref={lineRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={linePositions.length / 3}
+            array={linePositions}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial
+          ref={lineMatRef}
+          color="#ffdb8a"
+          transparent
+          opacity={0.25}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </lineSegments>
+
+      {travelData.length > 0 && (
+        <points ref={travelRef}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={travelPositions.length / 3}
+              array={travelPositions}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <pointsMaterial
+            color="#fff6d9"
+            size={0.07}
+            transparent
+            opacity={0.85}
+            depthWrite={false}
+            sizeAttenuation
+            blending={THREE.AdditiveBlending}
+          />
+        </points>
+      )}
+    </group>
+  )
+}
 // ── One villa: ground floor + set-back upper floor (balcony) + flat roof ──
 // Wide & short proportions on purpose — this is what reads as "home," not tower.
 function Villa({
@@ -212,6 +331,7 @@ export default function ParticleField() {
 
       <HomeRow />
       <Starfield count={400} />
+      <ConstellationLines count={150} maxDistance={3.5} travelers={50} speed={0.25} />
     </Canvas>
   )
 }

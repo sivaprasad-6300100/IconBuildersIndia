@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
+import { adminLogin, sendOTP, verifyOTP, logout as logoutService } from '../services/authService'
 
 const AuthContext = createContext(null)
 
@@ -7,56 +8,66 @@ export function AuthProvider({ children }) {
     try {
       const stored = localStorage.getItem('rs_user')
       return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
-    }
+    } catch { return null }
   })
 
   const [token, setToken] = useState(() => {
     return localStorage.getItem('rs_token') || null
   })
 
-  // Call this after OTP verified — pass user object + JWT token from backend
-  const login = useCallback((userData, jwtToken) => {
-    localStorage.setItem('rs_user', JSON.stringify(userData))
-    localStorage.setItem('rs_token', jwtToken)
+  // ── Save login data ───────────────────────────────────────────────────────
+  const login = useCallback((userData, accessToken, refreshToken) => {
+    localStorage.setItem('rs_user',    JSON.stringify(userData))
+    localStorage.setItem('rs_token',   accessToken)
+    localStorage.setItem('rs_refresh', refreshToken || '')
     setUser(userData)
-    setToken(jwtToken)
+    setToken(accessToken)
   }, [])
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('rs_user')
-    localStorage.removeItem('rs_token')
+  // ── Admin login with phone + password ─────────────────────────────────────
+  const loginAsAdmin = useCallback(async (phone, password) => {
+    const data = await adminLogin(phone, password)
+    login(data.user, data.tokens.access, data.tokens.refresh)
+    return data
+  }, [login])
+
+  // ── Client / Contractor — send OTP ────────────────────────────────────────
+  const requestOTP = useCallback(async (phone) => {
+    const data = await sendOTP(phone)
+    return data
+  }, [])
+
+  // ── Client / Contractor — verify OTP ─────────────────────────────────────
+  const loginWithOTP = useCallback(async (phone, otp) => {
+    const data = await verifyOTP(phone, otp)
+    login(data.user, data.tokens.access, data.tokens.refresh)
+    return data
+  }, [login])
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  const logout = useCallback(async () => {
+    await logoutService()
     setUser(null)
     setToken(null)
   }, [])
 
-  // Update user data without full re-login (e.g. after profile update)
-  const updateUser = useCallback((updatedFields) => {
-    setUser((prev) => {
-      const updated = { ...prev, ...updatedFields }
+  const updateUser = useCallback((fields) => {
+    setUser(prev => {
+      const updated = { ...prev, ...fields }
       localStorage.setItem('rs_user', JSON.stringify(updated))
       return updated
     })
   }, [])
 
   const isAuthenticated = !!user && !!token
-
-  // role = 'client' | 'contractor' | 'admin'
   const hasRole = (role) => user?.role === role
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated,
-        login,
-        logout,
-        updateUser,
-        hasRole,
-      }}
-    >
+    <AuthContext.Provider value={{
+      user, token, isAuthenticated,
+      login, loginAsAdmin, requestOTP, loginWithOTP,
+      logout, updateUser, hasRole,
+    }}>
       {children}
     </AuthContext.Provider>
   )
@@ -64,6 +75,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider')
+  if (!ctx) throw new Error('useAuth must be inside AuthProvider')
   return ctx
 }
