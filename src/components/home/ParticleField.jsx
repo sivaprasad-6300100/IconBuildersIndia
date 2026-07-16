@@ -1,7 +1,31 @@
-import { useRef, useMemo } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef, useMemo, useEffect, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Points, PointMaterial } from '@react-three/drei'
 import * as THREE from 'three'
+
+// ── Responsive Camera — backs off + widens FOV on small screens ──────────
+function ResponsiveCamera() {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    const isMobile = size.width < 768
+    const isSmallMobile = size.width < 400
+
+    if (isSmallMobile) {
+      camera.position.set(0, -0.1, 13)
+      camera.fov = 62
+    } else if (isMobile) {
+      camera.position.set(0, 0, 11.5)
+      camera.fov = 58
+    } else {
+      camera.position.set(0, 0.3, 8.5)
+      camera.fov = 52
+    }
+    camera.updateProjectionMatrix()
+  }, [size.width, camera])
+
+  return null
+}
 
 // ── Starfield ────────────────────────────────────────────────────────────
 function Starfield({ count = 400 }) {
@@ -92,7 +116,6 @@ function ConstellationLines({ count = 150, maxDistance = 3.5, travelers = 50, sp
 
     if (lineRef.current) lineRef.current.rotation.y = t * 0.015
     if (lineMatRef.current) {
-      // visible pulsing glow — brighter than background dust, dimmer than a spotlight
       lineMatRef.current.opacity = 0.22 + Math.sin(t * 0.6) * 0.08
     }
 
@@ -325,6 +348,8 @@ export default function ParticleField() {
       style={{ position: 'absolute', inset: 0 }}
       gl={{ antialias: true, alpha: true }}
     >
+      <ResponsiveCamera />
+
       <ambientLight intensity={0.28} />
       <pointLight position={[6, 6, 8]} intensity={0.6} color="#c9a227" />
       <pointLight position={[-6, -2, -4]} intensity={0.3} color="#1e4470" />
