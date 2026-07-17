@@ -40,11 +40,11 @@ const ADD_ONS = [
 ]
 
 const BREAKDOWN = [
-  { label: 'Structure', pct: 0.38, color: 'bg-gold' },
-  { label: 'Finishing', pct: 0.24, color: 'bg-gold-light' },
-  { label: 'Labor', pct: 0.20, color: 'bg-slate-soft' },
-  { label: 'Materials', pct: 0.13, color: 'bg-slate-muted' },
-  { label: 'Taxes & Approvals', pct: 0.05, color: 'bg-cream' },
+  { label: 'Structure', pct: 0.38, mod: 'structure' },
+  { label: 'Finishing', pct: 0.24, mod: 'finishing' },
+  { label: 'Labor', pct: 0.20, mod: 'labor' },
+  { label: 'Materials', pct: 0.13, mod: 'materials' },
+  { label: 'Taxes & Approvals', pct: 0.05, mod: 'taxes' },
 ]
 
 function formatINR(num) {
@@ -99,54 +99,407 @@ export default function EstimatorPage() {
   }, [plotSize, floors, city, type, quality, addOns])
 
   return (
-    <div className="min-h-screen bg-navy-gradient text-cream font-body pt-28 pb-24">
+    <div className="est">
+      <style>{`
+        .est {
+          min-height: 100vh;
+          background: linear-gradient(160deg, #050b14 0%, #0d1826 45%, #071422 100%);
+          color: #e8d5a3;
+          font-family: 'Inter', system-ui, sans-serif;
+          padding-top: 7rem;
+          padding-bottom: 6rem;
+        }
+        .est__display { font-family: Georgia, 'Times New Roman', serif; }
+
+        /* ── Header ── */
+        .est__header {
+          max-width: 72rem;
+          margin: 0 auto;
+          padding: 0 1.5rem;
+          margin-bottom: 3.5rem;
+          text-align: center;
+        }
+        .est__eyebrow {
+          display: inline-block;
+          color: #c9a84c;
+          font-size: 0.75rem;
+          letter-spacing: 0.3em;
+          text-transform: uppercase;
+          margin-bottom: 1rem;
+          font-weight: 600;
+        }
+        .est__title {
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 2.25rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin: 0 0 1rem;
+        }
+        @media (min-width: 768px) { .est__title { font-size: 3rem; } }
+        .est__title-gradient {
+          background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+        }
+        .est__subtitle {
+          color: #8fa3b8;
+          max-width: 36rem;
+          margin: 0 auto;
+        }
+
+        /* ── Grid layout ── */
+        .est__grid {
+          max-width: 72rem;
+          margin: 0 auto;
+          padding: 0 1.5rem;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+        @media (min-width: 1024px) {
+          .est__grid { grid-template-columns: 1.1fr 0.9fr; }
+        }
+
+        .est__left { display: flex; flex-direction: column; gap: 2rem; }
+
+        /* ── Card shell ── */
+        .est__card {
+          background: linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 1rem;
+          padding: 1.5rem;
+        }
+        .est__card-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          margin-bottom: 1rem;
+        }
+        .est__label {
+          font-size: 0.875rem;
+          color: #8fa3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+        }
+        .est__label--block { display: block; margin-bottom: 1rem; }
+        .est__label--icon { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .est__value-lg {
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 1.5rem;
+          color: #c9a84c;
+        }
+
+        /* Range input */
+        .est__range {
+          width: 100%;
+          accent-color: #c9a84c;
+        }
+        .est__range-minmax {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          color: #5f7285;
+          margin-top: 0.5rem;
+        }
+
+        /* Floors */
+        .est__floor-group { display: flex; gap: 0.75rem; }
+        .est__floor-btn {
+          flex: 1;
+          padding: 0.75rem 0;
+          border-radius: 0.75rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: transparent;
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 1.125rem;
+          color: #8fa3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+        }
+        .est__floor-btn:hover { border-color: rgba(201,168,76,0.4); }
+        .est__floor-btn--active {
+          background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
+          color: #071422;
+          border-color: transparent;
+          box-shadow: 0 0 16px rgba(201,168,76,0.25);
+        }
+        .est__floor-btn--active:hover { border-color: transparent; }
+
+        /* City */
+        .est__city-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.5rem;
+        }
+        .est__city-btn {
+          padding: 0.625rem 0.5rem;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: transparent;
+          color: #8fa3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .est__city-btn:hover { border-color: rgba(201,168,76,0.3); }
+        .est__city-btn--active {
+          background: rgba(201,168,76,0.15);
+          border-color: #c9a84c;
+          color: #c9a84c;
+        }
+
+        /* Construction type */
+        .est__type-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+        }
+        .est__type-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: transparent;
+          font-size: 0.875rem;
+          color: #8fa3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .est__type-btn:hover { border-color: rgba(201,168,76,0.3); }
+        .est__type-btn--active {
+          background: rgba(201,168,76,0.15);
+          border-color: #c9a84c;
+          color: #c9a84c;
+        }
+
+        /* Quality tiers */
+        .est__quality-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .est__quality-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          text-align: left;
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+        .est__quality-btn:hover { border-color: rgba(201,168,76,0.3); }
+        .est__quality-btn--active {
+          background: rgba(201,168,76,0.15);
+          border-color: #c9a84c;
+        }
+        .est__quality-label { margin: 0; color: #ffffff; }
+        .est__quality-label--active { color: #c9a84c; font-weight: 600; }
+        .est__quality-desc { font-size: 0.75rem; color: #5f7285; margin: 0.15rem 0 0; }
+        .est__quality-check { color: #c9a84c; flex-shrink: 0; }
+
+        /* Add-ons */
+        .est__addon-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+        }
+        .est__addon-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem;
+          border-radius: 0.75rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: transparent;
+          font-size: 0.75rem;
+          color: #8fa3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .est__addon-btn:hover { border-color: rgba(201,168,76,0.3); }
+        .est__addon-btn--active {
+          background: rgba(201,168,76,0.15);
+          border-color: #c9a84c;
+          color: #c9a84c;
+        }
+
+        /* ── Right column ── */
+        .est__right {
+          height: fit-content;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        @media (min-width: 1024px) {
+          .est__right { position: sticky; top: 7rem; }
+        }
+
+        .est__result {
+          position: relative;
+          background: linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+          border: 1px solid rgba(201,168,76,0.2);
+          border-radius: 1rem;
+          padding: 2rem;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          overflow: hidden;
+        }
+        .est__result-glow {
+          position: absolute;
+          top: -4rem;
+          right: -4rem;
+          width: 12rem;
+          height: 12rem;
+          background: rgba(201,168,76,0.1);
+          border-radius: 9999px;
+          filter: blur(48px);
+          animation: est-float 5s ease-in-out infinite;
+        }
+        @keyframes est-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-14px); }
+        }
+        .est__result-label {
+          color: #8fa3b8;
+          font-size: 0.875rem;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+          margin: 0 0 0.5rem;
+          position: relative;
+        }
+        .est__result-total {
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 2.25rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin-bottom: 0.25rem;
+          position: relative;
+        }
+        @media (min-width: 768px) { .est__result-total { font-size: 3rem; } }
+        .est__result-persqft {
+          color: #c9a84c;
+          font-size: 0.875rem;
+          margin: 0 0 1.5rem;
+          position: relative;
+        }
+
+        .est__breakdown { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; position: relative; }
+        .est__bd-row-head {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          color: #8fa3b8;
+          margin-bottom: 0.25rem;
+        }
+        .est__bd-track {
+          height: 0.375rem;
+          background: rgba(255,255,255,0.05);
+          border-radius: 9999px;
+          overflow: hidden;
+        }
+        .est__bd-fill { height: 100%; border-radius: 9999px; }
+        .est__bd-fill--structure { background: #c9a84c; }
+        .est__bd-fill--finishing { background: #f0d080; }
+        .est__bd-fill--labor { background: #8fa3b8; }
+        .est__bd-fill--materials { background: #5f7285; }
+        .est__bd-fill--taxes { background: #e8d5a3; }
+        .est__bd-fill--addon { background: #c9a84c; width: 100%; }
+
+        .est__timeline {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          color: #8fa3b8;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          padding-top: 1rem;
+          position: relative;
+        }
+        .est__timeline-value { color: #ffffff; font-weight: 600; }
+
+        .est__actions { display: flex; flex-direction: column; gap: 0.75rem; }
+        .est__btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.875rem 0;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          text-decoration: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+          font-size: 1rem;
+        }
+        .est__btn--primary {
+          background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
+          color: #071422;
+          border: none;
+          box-shadow: 0 0 16px rgba(201,168,76,0.25);
+        }
+        .est__btn--primary:hover { box-shadow: 0 0 26px rgba(201,168,76,0.4); }
+        .est__btn--outline {
+          border: 1px solid rgba(255,255,255,0.15);
+          background: transparent;
+          color: #8fa3b8;
+        }
+        .est__btn--outline:hover { border-color: rgba(201,168,76,0.4); color: #c9a84c; }
+
+        .est__disclaimer {
+          font-size: 0.75rem;
+          color: #5f7285;
+          text-align: center;
+          padding: 0 1rem;
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="max-w-6xl mx-auto px-6 mb-14 text-center">
-        <span className="inline-block text-gold text-xs tracking-[0.3em] uppercase mb-4 font-semibold">
-          Estimate before you build
-        </span>
-        <h1 className="font-display text-4xl md:text-5xl font-bold text-white mb-4">
-          Smart Cost <span className="text-transparent bg-clip-text bg-gold-gradient">Estimator</span>
+      <div className="est__header">
+        <span className="est__eyebrow">Estimate before you build</span>
+        <h1 className="est__title">
+          Smart Cost <span className="est__title-gradient">Estimator</span>
         </h1>
-        <p className="text-slate-soft max-w-xl mx-auto">
+        <p className="est__subtitle">
           Move the sliders, pick your finish, and watch your construction budget take shape in real time.
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8">
+      <div className="est__grid">
         {/* ── LEFT: Inputs ── */}
-        <div className="space-y-8">
+        <div className="est__left">
 
           {/* Plot size */}
-          <div className="bg-card-gradient border border-white/10 rounded-2xl p-6">
-            <div className="flex justify-between items-baseline mb-4">
-              <label className="text-sm text-slate-soft uppercase tracking-wide">Plot Size</label>
-              <span className="font-display text-2xl text-gold">{plotSize.toLocaleString('en-IN')} sq.ft</span>
+          <div className="est__card">
+            <div className="est__card-head">
+              <label className="est__label">Plot Size</label>
+              <span className="est__value-lg">{plotSize.toLocaleString('en-IN')} sq.ft</span>
             </div>
             <input
               type="range" min={500} max={10000} step={50}
               value={plotSize}
               onChange={(e) => setPlotSize(Number(e.target.value))}
-              className="w-full accent-gold"
+              className="est__range"
             />
-            <div className="flex justify-between text-xs text-slate-muted mt-2">
+            <div className="est__range-minmax">
               <span>500 sq.ft</span><span>10,000 sq.ft</span>
             </div>
           </div>
 
           {/* Floors */}
-          <div className="bg-card-gradient border border-white/10 rounded-2xl p-6">
-            <label className="text-sm text-slate-soft uppercase tracking-wide block mb-4">Floors</label>
-            <div className="flex gap-3">
+          <div className="est__card">
+            <label className="est__label est__label--block">Floors</label>
+            <div className="est__floor-group">
               {[1, 2, 3, 4].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFloors(f)}
-                  className={`flex-1 py-3 rounded-xl border font-display text-lg transition-all ${
-                    floors === f
-                      ? 'bg-gold-gradient text-navy border-transparent shadow-gold'
-                      : 'border-white/10 text-slate-soft hover:border-gold/40'
-                  }`}
+                  className={`est__floor-btn ${floors === f ? 'est__floor-btn--active' : ''}`}
                 >
                   {f === 4 ? 'G+3' : f === 1 ? 'Ground' : `G+${f - 1}`}
                 </button>
@@ -155,20 +508,16 @@ export default function EstimatorPage() {
           </div>
 
           {/* City */}
-          <div className="bg-card-gradient border border-white/10 rounded-2xl p-6">
-            <label className="text-sm text-slate-soft uppercase tracking-wide flex items-center gap-2 mb-4">
-              <MapPin size={14} className="text-gold" /> City
+          <div className="est__card">
+            <label className="est__label est__label--icon">
+              <MapPin size={14} color="#c9a84c" /> City
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="est__city-grid">
               {CITIES.map((c) => (
                 <button
                   key={c.name}
                   onClick={() => setCity(c.name)}
-                  className={`py-2.5 px-2 rounded-lg text-sm border transition-all ${
-                    city === c.name
-                      ? 'bg-gold/15 border-gold text-gold'
-                      : 'border-white/10 text-slate-soft hover:border-gold/30'
-                  }`}
+                  className={`est__city-btn ${city === c.name ? 'est__city-btn--active' : ''}`}
                 >
                   {c.name}
                 </button>
@@ -177,20 +526,16 @@ export default function EstimatorPage() {
           </div>
 
           {/* Construction type */}
-          <div className="bg-card-gradient border border-white/10 rounded-2xl p-6">
-            <label className="text-sm text-slate-soft uppercase tracking-wide block mb-4">Construction Type</label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="est__card">
+            <label className="est__label est__label--block">Construction Type</label>
+            <div className="est__type-grid">
               {CONSTRUCTION_TYPES.map((t) => {
                 const Icon = t.icon
                 return (
                   <button
                     key={t.id}
                     onClick={() => setType(t.id)}
-                    className={`flex items-center gap-2 py-3 px-4 rounded-xl border text-sm transition-all ${
-                      type === t.id
-                        ? 'bg-gold/15 border-gold text-gold'
-                        : 'border-white/10 text-slate-soft hover:border-gold/30'
-                    }`}
+                    className={`est__type-btn ${type === t.id ? 'est__type-btn--active' : ''}`}
                   >
                     <Icon size={16} /> {t.label}
                   </button>
@@ -200,33 +545,29 @@ export default function EstimatorPage() {
           </div>
 
           {/* Quality tier */}
-          <div className="bg-card-gradient border border-white/10 rounded-2xl p-6">
-            <label className="text-sm text-slate-soft uppercase tracking-wide block mb-4">Finish Quality</label>
-            <div className="space-y-2">
+          <div className="est__card">
+            <label className="est__label est__label--block">Finish Quality</label>
+            <div className="est__quality-list">
               {QUALITY_TIERS.map((q) => (
                 <button
                   key={q.id}
                   onClick={() => setQuality(q.id)}
-                  className={`w-full flex items-center justify-between text-left py-3 px-4 rounded-xl border transition-all ${
-                    quality === q.id
-                      ? 'bg-gold/15 border-gold'
-                      : 'border-white/10 hover:border-gold/30'
-                  }`}
+                  className={`est__quality-btn ${quality === q.id ? 'est__quality-btn--active' : ''}`}
                 >
                   <div>
-                    <p className={quality === q.id ? 'text-gold font-semibold' : 'text-white'}>{q.label}</p>
-                    <p className="text-xs text-slate-muted">{q.desc}</p>
+                    <p className={`est__quality-label ${quality === q.id ? 'est__quality-label--active' : ''}`}>{q.label}</p>
+                    <p className="est__quality-desc">{q.desc}</p>
                   </div>
-                  {quality === q.id && <CheckCircle2 size={18} className="text-gold shrink-0" />}
+                  {quality === q.id && <CheckCircle2 size={18} className="est__quality-check" />}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Add-ons */}
-          <div className="bg-card-gradient border border-white/10 rounded-2xl p-6">
-            <label className="text-sm text-slate-soft uppercase tracking-wide block mb-4">Add-ons</label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="est__card">
+            <label className="est__label est__label--block">Add-ons</label>
+            <div className="est__addon-grid">
               {ADD_ONS.map((a) => {
                 const Icon = a.icon
                 const active = addOns.includes(a.id)
@@ -234,11 +575,7 @@ export default function EstimatorPage() {
                   <button
                     key={a.id}
                     onClick={() => toggleAddOn(a.id)}
-                    className={`flex items-center gap-2 py-3 px-3 rounded-xl border text-xs transition-all ${
-                      active
-                        ? 'bg-gold/15 border-gold text-gold'
-                        : 'border-white/10 text-slate-soft hover:border-gold/30'
-                    }`}
+                    className={`est__addon-btn ${active ? 'est__addon-btn--active' : ''}`}
                   >
                     <Icon size={14} /> {a.label}
                   </button>
@@ -249,29 +586,26 @@ export default function EstimatorPage() {
         </div>
 
         {/* ── RIGHT: Live result (sticky) ── */}
-        <div className="lg:sticky lg:top-28 h-fit space-y-6">
-          <motion.div
-            layout
-            className="relative bg-card-gradient border border-gold/20 rounded-2xl p-8 shadow-navy overflow-hidden"
-          >
-            <div className="absolute -top-16 -right-16 w-48 h-48 bg-gold/10 rounded-full blur-3xl animate-float" />
-            <p className="text-slate-soft text-sm uppercase tracking-wide mb-2">Estimated Total Cost</p>
-            <div className="font-display text-4xl md:text-5xl font-bold text-white mb-1">
+        <div className="est__right">
+          <motion.div layout className="est__result">
+            <div className="est__result-glow" />
+            <p className="est__result-label">Estimated Total Cost</p>
+            <div className="est__result-total">
               <AnimatedNumber value={calc.total} />
             </div>
-            <p className="text-gold text-sm mb-6">≈ ₹{formatINR(calc.perSqft)} / sq.ft</p>
+            <p className="est__result-persqft">≈ ₹{formatINR(calc.perSqft)} / sq.ft</p>
 
             {/* Breakdown bars */}
-            <div className="space-y-3 mb-6">
+            <div className="est__breakdown">
               {BREAKDOWN.map((b) => (
                 <div key={b.label}>
-                  <div className="flex justify-between text-xs text-slate-soft mb-1">
+                  <div className="est__bd-row-head">
                     <span>{b.label}</span>
                     <span>₹{formatINR(calc.baseCost * b.pct)}</span>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="est__bd-track">
                     <motion.div
-                      className={`h-full ${b.color} rounded-full`}
+                      className={`est__bd-fill est__bd-fill--${b.mod}`}
                       initial={{ width: 0 }}
                       animate={{ width: `${b.pct * 100}%` }}
                       transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -281,39 +615,33 @@ export default function EstimatorPage() {
               ))}
               {calc.addOnCost > 0 && (
                 <div>
-                  <div className="flex justify-between text-xs text-slate-soft mb-1">
+                  <div className="est__bd-row-head">
                     <span>Add-ons</span>
                     <span>₹{formatINR(calc.addOnCost)}</span>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-gold rounded-full w-full" />
+                  <div className="est__bd-track">
+                    <div className="est__bd-fill est__bd-fill--addon" />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-slate-soft border-t border-white/10 pt-4">
-              <Clock size={16} className="text-gold" />
-              Estimated timeline: <span className="text-white font-semibold">{calc.months} months</span>
+            <div className="est__timeline">
+              <Clock size={16} color="#c9a84c" />
+              Estimated timeline: <span className="est__timeline-value">{calc.months} months</span>
             </div>
           </motion.div>
 
-          <div className="flex flex-col gap-3">
-            <Link
-              to="/#contact"
-              className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gold-gradient text-navy font-semibold shadow-gold hover:shadow-gold-lg transition-all"
-            >
+          <div className="est__actions">
+            <Link to="/#contact" className="est__btn est__btn--primary">
               <MessageCircle size={18} /> Get a Detailed Quote
             </Link>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-white/15 text-slate-soft hover:border-gold/40 hover:text-gold transition-all"
-            >
+            <button onClick={() => window.print()} className="est__btn est__btn--outline">
               <Download size={18} /> Download Estimate
             </button>
           </div>
 
-          <p className="text-xs text-slate-muted text-center px-4">
+          <p className="est__disclaimer">
             This is an approximate estimate based on average regional rates. Final cost depends on site
             conditions, design complexity, and material choices confirmed after a site visit.
           </p>
