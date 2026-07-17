@@ -61,7 +61,7 @@ function Starfield({ count = 400 }) {
 }
 
 // ── Constellation Lines — visible but calm background layer ───────────────
-function ConstellationLines({ count = 150, maxDistance = 3.5, travelers = 50, speed = 0.25 }) {
+function ConstellationLines({ count = 100, maxDistance = 3.5, travelers = 50, speed = 0.25 }) {
   const lineRef = useRef()
   const lineMatRef = useRef()
   const travelRef = useRef()
@@ -345,7 +345,7 @@ export default function ParticleField() {
   return (
     <Canvas
       camera={{ position: [0, 0.3, 8.5], fov: 52 }}
-      style={{ position: 'absolute', inset: 0 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
       gl={{ antialias: true, alpha: true }}
     >
       <ResponsiveCamera />
@@ -356,7 +356,7 @@ export default function ParticleField() {
 
       <HomeRow />
       <Starfield count={400} />
-      <ConstellationLines count={150} maxDistance={3.5} travelers={50} speed={0.25} />
+      <ConstellationLines count={100} maxDistance={3.5} travelers={50} speed={0.25} />
     </Canvas>
   )
 }

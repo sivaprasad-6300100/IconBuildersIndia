@@ -4,28 +4,28 @@ import { Menu, X, ChevronDown, Phone, LogOut, LayoutDashboard } from 'lucide-rea
 import { useAuth } from '../../context/AuthContext'
 
 const NAV_LINKS = [
-  { label: 'Home',       href: '/#home' },
-  { label: 'About',      href: '/#about' },
-  { label: 'Services',   href: '/#services' },
+  { label: 'Home',         href: '/#home' },
+  { label: 'About',        href: '/#about' },
+  { label: 'Services',     href: '/#services' },
   { label: 'How It Works', href: '/#how-it-works' },
-  { label: 'Projects',   href: '/#projects' },
-  { label: 'Contact',    href: '/#contact' },
+  { label: 'Projects',     href: '/#projects' },
+  { label: 'Contact',      href: '/#contact' },
 ]
 
 export default function Navbar() {
-  const [scrolled,     setScrolled]     = useState(false)
-  const [mobileOpen,   setMobileOpen]   = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { isAuthenticated, user, logout } = useAuth()
-  const location  = useLocation()
-  const navigate  = useNavigate()
+  const location = useLocation()
+  const navigate = useNavigate()
   const userMenuRef = useRef(null)
 
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 60)
-      const sections = ['home','about','services','how-it-works','projects','contact']
+      const sections = ['home', 'about', 'services', 'how-it-works', 'projects', 'contact']
       for (const id of sections.reverse()) {
         const el = document.getElementById(id)
         if (el && window.scrollY >= el.offsetTop - 120) {
@@ -66,9 +66,9 @@ export default function Navbar() {
   }
 
   const dashboardLink = {
-    client:     '/client',
+    client: '/client',
     contractor: '/contractor',
-    admin:      '/admin',
+    admin: '/admin',
   }[user?.role] || '/dashboard'
 
   const handleLogout = () => {
@@ -79,20 +79,397 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`
-        fixed top-0 left-0 right-0 z-50
-        transition-all duration-500 ease-in-out
-        ${scrolled
-          ? 'bg-navy-mid/95 backdrop-blur-xl border-b border-gold/10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]'
-          : 'bg-transparent'}
-      `}>
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
-          <div className="flex items-center justify-between h-18">
+      <style>{`
+        .nb {
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          z-index: 50;
+          transition: all 0.4s ease;
+          background: transparent;
+        }
+        .nb--scrolled {
+          background: rgba(13, 24, 38, 0.95);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-bottom: 1px solid rgba(201,168,76,0.1);
+          box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+        }
 
-            {/* ── Logo — real crest mark, not a placeholder ── */}
-            <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
-              <div className="relative w-10 h-11 flex-shrink-0">
-                <svg viewBox="0 0 160 190" className="w-full h-full transition-transform duration-300 group-hover:-translate-y-0.5">
+        .nb__inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 1.25rem;
+        }
+        @media (min-width: 640px)  { .nb__inner { padding: 0 2rem; } }
+        @media (min-width: 1024px) { .nb__inner { padding: 0 2.5rem; } }
+
+        .nb__row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          height: 4.5rem;
+        }
+
+        /* ── Logo ── */
+        .nb__brand {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-shrink: 0;
+          text-decoration: none;
+        }
+        .nb__logo {
+          position: relative;
+          width: 2.5rem;
+          height: 2.75rem;
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+        }
+        .nb__brand:hover .nb__logo { transform: translateY(-2px); }
+
+        .nb__brand-text {
+          font-weight: 900;
+          font-size: 1.25rem;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+        .nb__brand-cream { color: #e8d5a3; }
+        .nb__brand-gold { color: #c9a84c; }
+        .nb__brand-sub {
+          font-size: 0.5rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #8fa3b8;
+          line-height: 1;
+          margin-top: 0.25rem;
+        }
+
+        /* ── Desktop nav links ── */
+        .nb__links {
+          display: none;
+          align-items: center;
+          gap: 0.375rem;
+        }
+        @media (min-width: 1024px) { .nb__links { display: flex; } }
+
+        .nb__link {
+          position: relative;
+          padding: 0.6rem 1rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          border-radius: 0.5rem;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: rgba(232,213,163,0.7);
+          transition: color 0.2s ease;
+          font-family: inherit;
+        }
+        .nb__link:hover { color: #e8d5a3; }
+        .nb__link--active { color: #c9a84c; }
+
+        .nb__link-underline {
+          position: absolute;
+          bottom: 0.25rem;
+          left: 50%;
+          transform: translateX(-50%);
+          height: 2px;
+          width: 0;
+          background: #c9a84c;
+          border-radius: 9999px;
+          transition: width 0.3s ease;
+        }
+        .nb__link:hover .nb__link-underline { width: 0.75rem; }
+        .nb__link--active .nb__link-underline { width: 1rem; }
+
+        /* ── Right side actions ── */
+        .nb__actions {
+          display: none;
+          align-items: center;
+          gap: 0.65rem;
+        }
+        @media (min-width: 1024px) { .nb__actions { display: flex; } }
+
+        .nb__estimate {
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          padding: 0 1rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #c9a84c;
+          border: 1px solid rgba(201,168,76,0.3);
+          border-radius: 0.5rem;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+        .nb__estimate:hover {
+          background: rgba(201,168,76,0.1);
+          border-color: rgba(201,168,76,0.6);
+        }
+
+        .nb__login {
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          padding: 0 1.25rem;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
+          color: #071422;
+          text-decoration: none;
+          box-shadow: 0 0 16px rgba(201,168,76,0.25);
+          transition: all 0.2s ease;
+        }
+        .nb__login:hover {
+          box-shadow: 0 0 24px rgba(201,168,76,0.4);
+          transform: translateY(-2px);
+        }
+
+        .nb__whatsapp {
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0 0.85rem;
+          border-radius: 0.5rem;
+          background: rgba(37,211,102,0.1);
+          border: 1px solid rgba(37,211,102,0.2);
+          color: #25D366;
+          font-size: 0.875rem;
+          font-weight: 500;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+        .nb__whatsapp:hover { background: rgba(37,211,102,0.2); }
+        .nb__whatsapp-label { display: none; }
+        @media (min-width: 1280px) { .nb__whatsapp-label { display: inline; } }
+
+        /* ── User menu ── */
+        .nb__user-wrap { position: relative; }
+        .nb__user-btn {
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0 0.85rem;
+          border-radius: 0.5rem;
+          background: rgba(201,168,76,0.1);
+          border: 1px solid rgba(201,168,76,0.2);
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+        .nb__user-btn:hover { background: rgba(201,168,76,0.2); }
+
+        .nb__user-avatar {
+          width: 1.6rem;
+          height: 1.6rem;
+          border-radius: 50%;
+          background: rgba(201,168,76,0.2);
+          border: 1px solid rgba(201,168,76,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #c9a84c;
+          font-size: 0.7rem;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+        .nb__user-name {
+          color: #e8d5a3;
+          font-size: 0.875rem;
+          font-weight: 500;
+          max-width: 80px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .nb__chevron {
+          color: #c9a84c;
+          transition: transform 0.2s ease;
+        }
+        .nb__chevron--open { transform: rotate(180deg); }
+
+        .nb__dropdown {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 0.5rem);
+          width: 12rem;
+          background: #0d1826;
+          border: 1px solid rgba(201,168,76,0.15);
+          border-radius: 0.85rem;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          overflow: hidden;
+          animation: nb-scale-in 0.15s ease-out;
+        }
+        @keyframes nb-scale-in {
+          from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .nb__dropdown-header {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid rgba(201,168,76,0.1);
+        }
+        .nb__dropdown-name {
+          color: #e8d5a3;
+          font-size: 0.875rem;
+          font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          margin: 0;
+        }
+        .nb__dropdown-role {
+          color: #8fa3b8;
+          font-size: 0.75rem;
+          text-transform: capitalize;
+          margin: 0.15rem 0 0;
+        }
+
+        .nb__dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          width: 100%;
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+          color: rgba(232,213,163,0.8);
+          background: none;
+          border: none;
+          text-decoration: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+          box-sizing: border-box;
+        }
+        .nb__dropdown-item:hover {
+          color: #c9a84c;
+          background: rgba(201,168,76,0.05);
+        }
+        .nb__dropdown-item--danger { color: #f87171; }
+        .nb__dropdown-item--danger:hover { background: rgba(248,113,113,0.05); }
+
+        /* ── Mobile hamburger ── */
+        .nb__burger {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(201,168,76,0.2);
+          background: none;
+          color: #c9a84c;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+        .nb__burger:hover { background: rgba(201,168,76,0.1); }
+        @media (min-width: 1024px) { .nb__burger { display: none; } }
+
+        /* ── Mobile menu ── */
+        .nb__mobile {
+          overflow: hidden;
+          max-height: 0;
+          opacity: 0;
+          transition: all 0.3s ease;
+          background: rgba(13, 24, 38, 0.98);
+          backdrop-filter: blur(20px);
+          border-top: 1px solid rgba(201,168,76,0.1);
+        }
+        .nb__mobile--open {
+          max-height: 600px;
+          opacity: 1;
+        }
+        @media (min-width: 1024px) { .nb__mobile { display: none; } }
+
+        .nb__mobile-inner {
+          padding: 1rem 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .nb__mobile-link {
+          width: 100%;
+          text-align: left;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: rgba(232,213,163,0.7);
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+        .nb__mobile-link:hover { color: #e8d5a3; background: rgba(255,255,255,0.05); }
+        .nb__mobile-link--active {
+          background: rgba(201,168,76,0.1);
+          color: #c9a84c;
+          border: 1px solid rgba(201,168,76,0.2);
+        }
+
+        .nb__mobile-actions {
+          padding-top: 0.75rem;
+          margin-top: 0.5rem;
+          border-top: 1px solid rgba(201,168,76,0.1);
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .nb__mobile-btn {
+          width: 100%;
+          padding: 0.75rem;
+          border-radius: 0.5rem;
+          text-align: center;
+          font-size: 0.875rem;
+          font-weight: 600;
+          text-decoration: none;
+          box-sizing: border-box;
+          cursor: pointer;
+          border: none;
+          font-family: inherit;
+          transition: all 0.2s ease;
+        }
+        .nb__mobile-btn--outline {
+          color: #c9a84c;
+          border: 1px solid rgba(201,168,76,0.3);
+          background: transparent;
+        }
+        .nb__mobile-btn--outline:hover { background: rgba(201,168,76,0.1); }
+        .nb__mobile-btn--gold {
+          background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
+          color: #071422;
+          font-weight: 700;
+        }
+        .nb__mobile-btn--danger {
+          color: #f87171;
+          border: 1px solid rgba(248,113,113,0.2);
+          background: transparent;
+        }
+        .nb__mobile-btn--danger:hover { background: rgba(248,113,113,0.05); }
+        .nb__mobile-btn--whatsapp {
+          color: #25D366;
+          border: 1px solid rgba(37,211,102,0.2);
+          background: transparent;
+        }
+        .nb__mobile-btn--whatsapp:hover { background: rgba(37,211,102,0.1); }
+
+        .nb__spacer { height: 4.5rem; }
+      `}</style>
+
+      <nav className={`nb ${scrolled ? 'nb--scrolled' : ''}`}>
+        <div className="nb__inner">
+          <div className="nb__row">
+
+            {/* Logo */}
+            <Link to="/" className="nb__brand">
+              <div className="nb__logo">
+                <svg viewBox="0 0 160 190" width="100%" height="100%">
                   <defs>
                     <linearGradient id="nav-gold" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#f0d080" />
@@ -122,18 +499,16 @@ export default function Navbar() {
                 </svg>
               </div>
               <div>
-                <div className="font-black text-xl tracking-tight leading-none">
-                  <span className="text-cream">ICON</span>
-                  <span className="text-gold">BUILDERS</span>
+                <div className="nb__brand-text">
+                  <span className="nb__brand-cream">ICON</span>
+                  <span className="nb__brand-gold">BUILDERS</span>
                 </div>
-                <div className="text-[0.5rem] tracking-[0.2em] text-slate-soft uppercase leading-none mt-1">
-                  AI-Powered Platform
-                </div>
+                <div className="nb__brand-sub">AI-Powered Platform</div>
               </div>
             </Link>
 
-            {/* ── Desktop Nav Links — more breathing room ── */}
-            <div className="hidden lg:flex items-center gap-1.5">
+            {/* Desktop nav */}
+            <div className="nb__links">
               {NAV_LINKS.map((link) => {
                 const id = link.href.replace('/#', '')
                 const isActive = activeSection === id
@@ -141,83 +516,46 @@ export default function Navbar() {
                   <button
                     key={link.label}
                     onClick={() => scrollTo(link.href)}
-                    className={`
-                      relative px-4 py-2.5 text-sm font-medium rounded-lg
-                      transition-all duration-200 group
-                      ${isActive
-                        ? 'text-gold'
-                        : 'text-cream/70 hover:text-cream'}
-                    `}
+                    className={`nb__link ${isActive ? 'nb__link--active' : ''}`}
                   >
                     {link.label}
-                    <span className={`
-                      absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 bg-gold
-                      transition-all duration-300 rounded-full
-                      ${isActive ? 'w-4' : 'w-0 group-hover:w-3'}
-                    `} />
+                    <span className="nb__link-underline" />
                   </button>
                 )
               })}
             </div>
 
-            {/* ── Right side actions — unified height/padding across all pills ── */}
-            <div className="hidden lg:flex items-center gap-2.5">
-
-              <Link
-                to="/estimator"
-                className="h-10 flex items-center px-4 text-sm font-semibold text-gold
-                           border border-gold/30 rounded-lg
-                           hover:bg-gold/10 hover:border-gold/60
-                           transition-all duration-200"
-              >
+            {/* Right side actions */}
+            <div className="nb__actions">
+              <Link to="/estimator" className="nb__estimate">
                 Free Estimate
               </Link>
 
               {isAuthenticated ? (
-                <div className="relative" ref={userMenuRef}>
-                  <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="h-10 flex items-center gap-2 px-3.5 rounded-lg
-                               bg-gold/10 border border-gold/20
-                               hover:bg-gold/20 transition-all duration-200"
-                  >
-                    <div className="w-6.5 h-6.5 rounded-full bg-gold/20 border border-gold/40
-                                    flex items-center justify-center
-                                    text-gold text-xs font-bold">
+                <div className="nb__user-wrap" ref={userMenuRef}>
+                  <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="nb__user-btn">
+                    <div className="nb__user-avatar">
                       {user?.name?.[0]?.toUpperCase() || 'U'}
                     </div>
-                    <span className="text-cream text-sm font-medium max-w-[80px] truncate">
-                      {user?.name || 'User'}
-                    </span>
-                    <ChevronDown
-                      size={14}
-                      className={`text-gold transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
-                    />
+                    <span className="nb__user-name">{user?.name || 'User'}</span>
+                    <ChevronDown size={14} className={`nb__chevron ${userMenuOpen ? 'nb__chevron--open' : ''}`} />
                   </button>
 
                   {userMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-48
-                                    bg-navy-mid border border-gold/15 rounded-xl
-                                    shadow-[0_8px_32px_rgba(0,0,0,0.4)]
-                                    overflow-hidden animate-scale-in">
-                      <div className="px-4 py-3 border-b border-gold/10">
-                        <p className="text-cream text-sm font-semibold truncate">{user?.name}</p>
-                        <p className="text-slate-soft text-xs capitalize mt-0.5">{user?.role}</p>
+                    <div className="nb__dropdown">
+                      <div className="nb__dropdown-header">
+                        <p className="nb__dropdown-name">{user?.name}</p>
+                        <p className="nb__dropdown-role">{user?.role}</p>
                       </div>
                       <Link
                         to={dashboardLink}
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 text-sm text-cream/80
-                                   hover:text-gold hover:bg-gold/5 transition-colors"
+                        className="nb__dropdown-item"
                       >
                         <LayoutDashboard size={15} />
                         Dashboard
                       </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm
-                                   text-red-400 hover:bg-red-400/5 transition-colors"
-                      >
+                      <button onClick={handleLogout} className="nb__dropdown-item nb__dropdown-item--danger">
                         <LogOut size={15} />
                         Logout
                       </button>
@@ -225,14 +563,7 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <Link
-                  to="/login"
-                  className="h-10 flex items-center px-5 rounded-lg text-sm font-bold
-                             bg-gradient-to-r from-gold to-gold-light
-                             text-navy shadow-gold
-                             hover:shadow-gold-lg hover:-translate-y-0.5
-                             transition-all duration-200"
-                >
+                <Link to="/login" className="nb__login">
                   Login
                 </Link>
               )}
@@ -241,37 +572,27 @@ export default function Navbar() {
                 href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-10 flex items-center gap-1.5 px-3.5 rounded-lg
-                           bg-[#25D366]/10 border border-[#25D366]/20
-                           text-[#25D366] text-sm font-medium
-                           hover:bg-[#25D366]/20 transition-all duration-200"
+                className="nb__whatsapp"
               >
                 <Phone size={13} />
-                <span className="hidden xl:inline">WhatsApp</span>
+                <span className="nb__whatsapp-label">WhatsApp</span>
               </a>
             </div>
 
-            {/* ── Mobile hamburger ── */}
+            {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden w-10 h-10 flex items-center justify-center
-                         rounded-lg border border-gold/20 text-gold
-                         hover:bg-gold/10 transition-all duration-200"
+              className="nb__burger"
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-
           </div>
         </div>
 
-        {/* ── Mobile Menu ── */}
-        <div className={`
-          lg:hidden overflow-hidden transition-all duration-300 ease-in-out
-          ${mobileOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}
-          bg-navy-mid/98 backdrop-blur-xl border-t border-gold/10
-        `}>
-          <div className="px-5 py-4 space-y-1">
+        {/* Mobile menu */}
+        <div className={`nb__mobile ${mobileOpen ? 'nb__mobile--open' : ''}`}>
+          <div className="nb__mobile-inner">
             {NAV_LINKS.map((link) => {
               const id = link.href.replace('/#', '')
               const isActive = activeSection === id
@@ -279,61 +600,38 @@ export default function Navbar() {
                 <button
                   key={link.label}
                   onClick={() => scrollTo(link.href)}
-                  className={`
-                    w-full text-left px-4 py-3 rounded-lg text-sm font-medium
-                    transition-all duration-200
-                    ${isActive
-                      ? 'bg-gold/10 text-gold border border-gold/20'
-                      : 'text-cream/70 hover:text-cream hover:bg-white/5'}
-                  `}
+                  className={`nb__mobile-link ${isActive ? 'nb__mobile-link--active' : ''}`}
                 >
                   {link.label}
                 </button>
               )
             })}
 
-            <div className="pt-3 border-t border-gold/10 flex flex-col gap-2">
-              <Link
-                to="/estimator"
-                className="w-full py-3 rounded-lg text-center text-sm font-semibold
-                           text-gold border border-gold/30 hover:bg-gold/10 transition-all"
-              >
+            <div className="nb__mobile-actions">
+              <Link to="/estimator" className="nb__mobile-btn nb__mobile-btn--outline">
                 Free Estimate
               </Link>
+
               {isAuthenticated ? (
                 <>
-                  <Link
-                    to={dashboardLink}
-                    className="w-full py-3 rounded-lg text-center text-sm font-bold
-                               bg-gradient-to-r from-gold to-gold-light text-navy"
-                  >
+                  <Link to={dashboardLink} className="nb__mobile-btn nb__mobile-btn--gold">
                     Dashboard
                   </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full py-3 rounded-lg text-center text-sm text-red-400
-                               border border-red-400/20 hover:bg-red-400/5 transition-all"
-                  >
+                  <button onClick={handleLogout} className="nb__mobile-btn nb__mobile-btn--danger">
                     Logout
                   </button>
                 </>
               ) : (
-                <Link
-                  to="/login"
-                  className="w-full py-3 rounded-lg text-center text-sm font-bold
-                             bg-gradient-to-r from-gold to-gold-light text-navy
-                             shadow-gold"
-                >
+                <Link to="/login" className="nb__mobile-btn nb__mobile-btn--gold">
                   Login
                 </Link>
               )}
+
               <a
                 href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 rounded-lg text-center text-sm font-medium
-                           text-[#25D366] border border-[#25D366]/20
-                           hover:bg-[#25D366]/10 transition-all"
+                className="nb__mobile-btn nb__mobile-btn--whatsapp"
               >
                 📱 Chat on WhatsApp
               </a>
@@ -342,7 +640,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {location.pathname !== '/' && <div className="h-18" />}
+      {location.pathname !== '/' && <div className="nb__spacer" />}
     </>
   )
 }

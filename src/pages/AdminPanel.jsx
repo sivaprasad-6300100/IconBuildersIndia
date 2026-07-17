@@ -10,6 +10,9 @@ import {
   Building2, MessageSquare, ShieldCheck,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { AnimatePresence } from 'framer-motion'
+import api from '../services/api'
+import toast from 'react-hot-toast'
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 const STATS = [
@@ -265,12 +268,52 @@ function ProjectsTab() {
 }
 
 // ── Clients Tab ───────────────────────────────────────────────────────────────
+
 function ClientsTab() {
-  const [search, setSearch] = useState('')
-  const filtered = CLIENTS.filter(c =>
+  const [search, setSearch]       = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading]     = useState(false)
+  const [success, setSuccess]     = useState(false)
+  const [clients, setClients]     = useState([])
+  const [fetched, setFetched]     = useState(false)
+  const [form, setForm] = useState({ name:'', phone:'', email:'' })
+
+  const fetchClients = async () => {
+    try {
+      const res = await api.get('/api/users/?role=client')
+      setClients(res.data)
+    } catch {}
+    setFetched(true)
+  }
+  if (!fetched) fetchClients()
+
+  const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.project.toLowerCase().includes(search.toLowerCase())
+    c.phone.includes(search)
   )
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { toast.error('Enter client name'); return }
+    if (form.phone.length < 10) { toast.error('Enter valid 10-digit phone'); return }
+    setLoading(true)
+    try {
+      const res = await api.post('/api/users/create-client/', {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+      })
+      setClients(prev => [res.data.user, ...prev])
+      setSuccess(true)
+      toast.success(`Client ${form.name} created!`)
+      setTimeout(() => {
+        setSuccess(false)
+        setShowModal(false)
+        setForm({ name:'', phone:'', email:'' })
+      }, 2000)
+    } catch (err) {
+      toast.error(err.response?.data?.phone?.[0] || err.response?.data?.error || 'Failed to create client')
+    } finally { setLoading(false) }
+  }
 
   return (
     <div className="space-y-4">
@@ -280,32 +323,40 @@ function ClientsTab() {
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search clients..."
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-gold text-sm">
+        <button onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-gold text-sm font-bold">
           <UserPlus size={14} /> Add Client
         </button>
       </div>
 
       <div className="grid gap-3">
+        {filtered.length === 0 && (
+          <div className="glass border border-white/8 rounded-xl p-8 text-center">
+            <p className="text-slate-soft text-sm">No clients yet. Click "Add Client" to create one.</p>
+          </div>
+        )}
         {filtered.map((c,i) => (
           <motion.div key={c.id} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.06 }}
             className="glass border border-white/8 rounded-xl p-4 flex flex-wrap gap-4 items-center hover:border-gold/15 transition-all">
             <div className="w-10 h-10 rounded-full bg-gold/15 border border-gold/20 flex items-center justify-center text-gold font-black flex-shrink-0">
-              {c.name[0]}
+              {c.name[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-[140px]">
               <p className="text-cream font-semibold text-sm">{c.name}</p>
               <p className="text-slate-soft text-xs mt-0.5">{c.phone}</p>
             </div>
-            <div className="hidden sm:block min-w-[160px]">
-              <p className="text-slate-soft text-xs">Project</p>
-              <p className="text-cream text-sm font-medium">{c.project}</p>
+            <div className="hidden sm:block">
+              <p className="text-slate-soft text-xs">Role</p>
+              <p className="text-cream text-sm font-medium capitalize">{c.role}</p>
             </div>
             <div className="hidden md:block">
               <p className="text-slate-soft text-xs">Joined</p>
-              <p className="text-cream text-sm">{c.joined}</p>
+              <p className="text-cream text-sm">
+                {new Date(c.created_at).toLocaleDateString('en-IN',{month:'short',year:'numeric'})}
+              </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <StatusBadge status={c.status} />
+              <StatusBadge status={c.is_active ? 'Active' : 'Inactive'} />
               <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-gold/10 hover:text-gold transition-all text-slate-soft">
                 <Eye size={13} />
               </button>
@@ -313,22 +364,169 @@ function ClientsTab() {
           </motion.div>
         ))}
       </div>
+
+      {/* Add Client Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+              onClick={() => !loading && setShowModal(false)}
+              className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm" />
+            <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.9 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-md glass border border-gold/20 rounded-2xl p-6 relative">
+                <button onClick={() => !loading && setShowModal(false)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-soft hover:text-red-400 transition-all">
+                  <X size={16} />
+                </button>
+
+                {success ? (
+                  <div className="py-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/25 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 size={30} className="text-green-400" />
+                    </div>
+                    <h3 className="text-cream font-bold text-lg mb-1">Client Created!</h3>
+                    <p className="text-slate-soft text-sm">{form.name} can now login with OTP</p>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-cream font-bold text-lg mb-1">Add New Client</h2>
+                    <p className="text-slate-soft text-xs mb-5">Client will login using phone + OTP</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-slate-soft uppercase tracking-wider mb-1.5 block">Full Name *</label>
+                        <input name="name" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}
+                          placeholder="e.g. Rajesh Mehta"
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-soft uppercase tracking-wider mb-1.5 block">Phone Number *</label>
+                        <div className="flex gap-2">
+                          <div className="flex items-center px-3 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm flex-shrink-0">🇮🇳 +91</div>
+                          <input value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value.replace(/\D/g,'').slice(0,10)}))}
+                            placeholder="10-digit mobile"
+                            className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-soft uppercase tracking-wider mb-1.5 block">Email (optional)</label>
+                        <input name="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))}
+                          placeholder="client@email.com" type="email"
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+                      </div>
+                      <div className="bg-gold/5 border border-gold/15 rounded-xl p-3">
+                        <p className="text-xs text-slate-soft">💡 Client can login at <span className="text-gold">iconbuilderindia.com/login</span> using phone + OTP</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button onClick={() => setShowModal(false)} disabled={loading}
+                          className="flex-1 py-3 rounded-xl btn-outline text-sm">Cancel</button>
+                        <button onClick={handleSubmit} disabled={loading || !form.name || form.phone.length < 10}
+                          className="flex-1 py-3 rounded-xl btn-gold text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                          {loading ? <><div className="w-4 h-4 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />Creating...</> : <><UserPlus size={14} />Create Client</>}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
+
+
+
+
+// ── Contractors Tab ───────────────────────────────────────────────────────────
+
 // ── Contractors Tab ───────────────────────────────────────────────────────────
 function ContractorsTab() {
+  const [search, setSearch]       = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading]     = useState(false)
+  const [success, setSuccess]     = useState(false)
+  const [contractors, setContractors] = useState([])
+  const [fetched, setFetched]     = useState(false)
+  const [form, setForm] = useState({ name:'', phone:'', email:'' })
+
+  const fetchContractors = async () => {
+    try {
+      const res = await api.get('/api/users/?role=contractor')
+      setContractors(res.data)
+    } catch {}
+    setFetched(true)
+  }
+  if (!fetched) fetchContractors()
+
+  const filtered = contractors.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone.includes(search)
+  )
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { toast.error('Enter contractor name'); return }
+    if (form.phone.length < 10) { toast.error('Enter valid 10-digit phone'); return }
+    setLoading(true)
+    try {
+      const res = await api.post('/api/users/create-contractor/', {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+      })
+      setContractors(prev => [res.data.user, ...prev])
+      setSuccess(true)
+      toast.success(`Contractor ${form.name} created!`)
+      setTimeout(() => {
+        setSuccess(false)
+        setShowModal(false)
+        setForm({ name:'', phone:'', email:'' })
+      }, 2000)
+    } catch (err) {
+      toast.error(err.response?.data?.phone?.[0] || err.response?.data?.error || 'Failed to create contractor')
+    } finally { setLoading(false) }
+  }
+
+  const toggleActive = async (contractor) => {
+    try {
+      if (contractor.is_active) {
+        await api.delete(`/api/users/${contractor.id}/`)
+        setContractors(prev => prev.map(c => c.id === contractor.id ? { ...c, is_active: false } : c))
+        toast.success(`${contractor.name} deactivated`)
+      } else {
+        await api.put(`/api/users/${contractor.id}/`, { is_active: true })
+        setContractors(prev => prev.map(c => c.id === contractor.id ? { ...c, is_active: true } : c))
+        toast.success(`${contractor.name} approved`)
+      }
+    } catch {
+      toast.error('Failed to update contractor')
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-cream font-bold">All Contractors</h3>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl btn-gold text-sm">
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-soft" />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search contractors..."
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+        </div>
+        <button onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-gold text-sm font-bold">
           <UserPlus size={14} /> Add Contractor
         </button>
       </div>
+
       <div className="grid gap-4">
-        {CONTRACTORS.map((c,i) => (
+        {filtered.length === 0 && (
+          <div className="glass border border-white/8 rounded-xl p-8 text-center">
+            <p className="text-slate-soft text-sm">No contractors yet. Click "Add Contractor" to create one.</p>
+          </div>
+        )}
+        {filtered.map((c,i) => (
           <motion.div key={c.id} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.07 }}
             className="glass border border-white/8 rounded-xl p-5 flex flex-wrap gap-4 items-center hover:border-gold/15 transition-all">
             <div className="w-11 h-11 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center flex-shrink-0">
@@ -338,27 +536,102 @@ function ContractorsTab() {
               <p className="text-cream font-bold text-sm">{c.name}</p>
               <p className="text-slate-soft text-xs mt-0.5">{c.phone}</p>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <span className="text-gold font-bold text-sm">★ {c.rating}</span>
-            </div>
-            <div className="flex-shrink-0 text-center">
-              <div className="text-cream font-bold text-lg">{c.projects}</div>
-              <div className="text-slate-soft text-xs">Projects</div>
+            <div className="hidden md:block">
+              <p className="text-slate-soft text-xs">Joined</p>
+              <p className="text-cream text-sm">
+                {new Date(c.created_at).toLocaleDateString('en-IN',{month:'short',year:'numeric'})}
+              </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <StatusBadge status={c.status} />
+              <StatusBadge status={c.is_active ? 'Active' : 'Pending'} />
               <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-gold/10 hover:text-gold transition-all text-slate-soft">
                 <Eye size={13} />
               </button>
-              {c.status==='Pending' && (
-                <button className="flex items-center gap-1 px-3 py-1 rounded-lg bg-green-400/10 text-green-400 text-xs font-semibold hover:bg-green-400/20 transition-all border border-green-400/20">
+              {!c.is_active && (
+                <button onClick={() => toggleActive(c)}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-green-400/10 text-green-400 text-xs font-semibold hover:bg-green-400/20 transition-all border border-green-400/20">
                   <ShieldCheck size={12} /> Approve
+                </button>
+              )}
+              {c.is_active && (
+                <button onClick={() => toggleActive(c)}
+                  className="px-3 py-1 rounded-lg bg-red-400/10 text-red-400 text-xs font-semibold hover:bg-red-400/20 transition-all border border-red-400/20">
+                  Deactivate
                 </button>
               )}
             </div>
           </motion.div>
         ))}
       </div>
+
+      {/* Add Contractor Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+              onClick={() => !loading && setShowModal(false)}
+              className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm" />
+            <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0, scale:0.9 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-md glass border border-gold/20 rounded-2xl p-6 relative">
+                <button onClick={() => !loading && setShowModal(false)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-soft hover:text-red-400 transition-all">
+                  <X size={16} />
+                </button>
+
+                {success ? (
+                  <div className="py-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/25 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 size={30} className="text-green-400" />
+                    </div>
+                    <h3 className="text-cream font-bold text-lg mb-1">Contractor Created!</h3>
+                    <p className="text-slate-soft text-sm">{form.name} can now login with OTP</p>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-cream font-bold text-lg mb-1">Add New Contractor</h2>
+                    <p className="text-slate-soft text-xs mb-5">Contractor will login using phone + OTP</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-slate-soft uppercase tracking-wider mb-1.5 block">Full Name / Company *</label>
+                        <input name="name" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}
+                          placeholder="e.g. Sri Sai Constructions"
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-soft uppercase tracking-wider mb-1.5 block">Phone Number *</label>
+                        <div className="flex gap-2">
+                          <div className="flex items-center px-3 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm flex-shrink-0">🇮🇳 +91</div>
+                          <input value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value.replace(/\D/g,'').slice(0,10)}))}
+                            placeholder="10-digit mobile"
+                            className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-soft uppercase tracking-wider mb-1.5 block">Email (optional)</label>
+                        <input name="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))}
+                          placeholder="contractor@email.com" type="email"
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-cream text-sm placeholder:text-slate-muted focus:outline-none focus:border-gold/40 transition-all" />
+                      </div>
+                      <div className="bg-gold/5 border border-gold/15 rounded-xl p-3">
+                        <p className="text-xs text-slate-soft">💡 Contractor can login at <span className="text-gold">iconbuilderindia.com/login</span> using phone + OTP</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button onClick={() => setShowModal(false)} disabled={loading}
+                          className="flex-1 py-3 rounded-xl btn-outline text-sm">Cancel</button>
+                        <button onClick={handleSubmit} disabled={loading || !form.name || form.phone.length < 10}
+                          className="flex-1 py-3 rounded-xl btn-gold text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                          {loading ? <><div className="w-4 h-4 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />Creating...</> : <><UserPlus size={14} />Create Contractor</>}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
