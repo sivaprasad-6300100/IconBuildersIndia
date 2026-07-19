@@ -1,20 +1,27 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, BedDouble, Ruler, ArrowUpRight } from 'lucide-react'
+import building1 from '../../assets/projects/building1.jpeg'
+import building2 from '../../assets/projects/building2.jpeg'
+import building3 from '../../assets/projects/building3.jpeg'
+import building4 from '../../assets/projects/building4.jpeg'
+import building5 from '../../assets/projects/building5.jpeg'
+
+
 
 const PROJECTS = [
   {
     id: 1, title: 'Luxury Villa — Jubilee Hills', category: 'Villa',
     location: 'Hyderabad', beds: 4, area: '3200 sqft', budget: '₹1.8 Cr',
     status: 'Completed', statusColor: '#4ade80',
-    progress: 100, emoji: '🏡', gradientFrom: 'rgba(146,64,14,0.35)',
+    progress: 100, image: building1 , gradientFrom: 'rgba(146,64,14,0.35)',
     desc: 'Premium 4BHK villa with Italian marble flooring, home theatre, and smart home automation.',
   },
   {
     id: 2, title: 'Modern Apartment — Gachibowli', category: 'Apartment',
     location: 'Hyderabad', beds: 3, area: '1850 sqft', budget: '₹95 L',
     status: 'In Progress', statusColor: '#c9a84c',
-    progress: 68, emoji: '🏢', gradientFrom: 'rgba(30,58,138,0.35)',
+    progress: 68,image : building4, gradientFrom: 'rgba(30,58,138,0.35)',
     desc: 'Contemporary 3BHK apartment with open floor plan, modular kitchen, and rooftop access.',
   },
   {
@@ -28,21 +35,21 @@ const PROJECTS = [
     id: 4, title: 'Duplex Home — Banjara Hills', category: 'Villa',
     location: 'Hyderabad', beds: 5, area: '4500 sqft', budget: '₹2.6 Cr',
     status: 'Completed', statusColor: '#4ade80',
-    progress: 100, emoji: '🏠', gradientFrom: 'rgba(6,78,59,0.35)',
+    progress: 100,image : building3 ,gradientFrom: 'rgba(6,78,59,0.35)',
     desc: 'Stunning duplex with private pool, landscaped garden, and premium imported fixtures.',
   },
   {
     id: 5, title: 'Budget Apartment — Miyapur', category: 'Apartment',
     location: 'Hyderabad', beds: 2, area: '1100 sqft', budget: '₹52 L',
     status: 'Completed', statusColor: '#4ade80',
-    progress: 100, emoji: '🏗', gradientFrom: 'rgba(88,28,135,0.35)',
+    progress: 100, image : building2,gradientFrom: 'rgba(88,28,135,0.35)',
     desc: 'Affordable 2BHK with quality finishes, vastu compliance, and great connectivity.',
   },
   {
     id: 6, title: 'IT Office Space — HITEC City', category: 'Commercial',
     location: 'Hyderabad', beds: null, area: '8500 sqft', budget: '₹3.1 Cr',
     status: 'Planning', statusColor: '#fb923c',
-    progress: 15, emoji: '🏛', gradientFrom: 'rgba(124,45,18,0.3)',
+    progress: 15,image: building5,gradientFrom: 'rgba(124,45,18,0.3)',
     desc: 'State-of-the-art office with open workspaces, conference rooms, and server room.',
   },
 ]
@@ -67,13 +74,18 @@ function ProjectCard({ project, index }) {
         className="proj__banner"
         style={{ background: `linear-gradient(135deg, ${project.gradientFrom} 0%, #0d1826 100%)` }}
       >
-        <motion.span
-          animate={{ scale: hovered ? 1.2 : 1, rotate: hovered ? 5 : 0 }}
-          transition={{ duration: 0.3 }}
-          className="proj__emoji"
-        >
-          {project.emoji}
-        </motion.span>
+
+        {project.image ? (
+          <img src={project.image} alt={project.title} className="proj__banner-img" />
+        ) : (
+          <motion.span
+            animate={{ scale: hovered ? 1.2 : 1, rotate: hovered ? 5 : 0 }}
+            transition={{ duration: 0.3 }}
+            className="proj__emoji"
+          >
+            {project.emoji}
+          </motion.span>
+        )}
 
         <div className="proj__grid-overlay" />
 
@@ -275,6 +287,15 @@ padding: 6rem 1.5rem;
         .proj__emoji {
           font-size: 3.75rem;
           user-select: none;
+        }
+
+        .proj__banner-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          z-index: 0;
         }
 
         .proj__grid-overlay {

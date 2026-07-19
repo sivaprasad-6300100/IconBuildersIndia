@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ClipboardList, Palette, Code2, Rocket, HeartHandshake } from 'lucide-react'
 
@@ -462,9 +463,9 @@ export default function HowItWorks() {
               Start Your Project
             </a>
 
-            <a href="/estimator" className="hiw__btn hiw__btn--outline">
+            <Link to="/estimator" className="hiw__btn hiw__btn--outline">
               Get Free Estimate
-            </a>
+            </Link>
           </div>
         </motion.div>
       </div>

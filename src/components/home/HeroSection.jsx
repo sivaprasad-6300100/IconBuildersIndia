@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import ParticleField from './ParticleField'
 
 export default function HeroSection() {
@@ -247,9 +248,9 @@ export default function HeroSection() {
         </p>
 
         <div className="hero__ctas">
-          <a href="/estimator" className="hero__btn hero__btn--primary">
+          <Link to="/estimator" className="hero__btn hero__btn--primary">
             Get Free Estimate
-          </a>
+          </Link>
           <a href="/#projects" className="hero__btn hero__btn--secondary">
             View Projects
           </a>
