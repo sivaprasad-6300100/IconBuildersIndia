@@ -235,7 +235,7 @@ export default function HeroSection() {
       <div className="hero__content">
         <div className="hero__badge">
           <span className="hero__badge-dot" />
-          Hyderabad &middot; RERA Registered
+          BENGALURU &middot; RERA Registered
         </div>
 
         <h1 className="hero__title">
@@ -243,7 +243,7 @@ export default function HeroSection() {
         </h1>
 
         <p className="hero__subtitle">
-          120+ homes delivered across India. Real-time build progress, right from your phone.
+          150+ homes delivered across India. Real-time build progress, right from your phone.
         </p>
 
         <div className="hero__ctas">
@@ -258,9 +258,9 @@ export default function HeroSection() {
 
       <div className="hero__stats">
         {[
-          { value: '120+', label: 'Homes Delivered' },
+          { value: '150+', label: 'Homes Delivered' },
           { value: '4.9', label: 'Client Rating' },
-          { value: '9 yrs', label: 'Experience' },
+          { value: '18 yrs', label: 'Experience' },
         ].map((stat) => (
           <div key={stat.label} className="hero__stat">
             <div className="hero__stat-value">{stat.value}</div>

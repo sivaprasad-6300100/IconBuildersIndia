@@ -20,10 +20,10 @@ function useCountUp(end, duration = 2500, start = false) {
 }
 
 const STATS = [
-  { value: 500,  suffix: '+', label: 'Projects Delivered',  icon: Building2 },
+  { value: 18,  suffix: '+', label: 'Projects Delivered',  icon: Building2 },
   { value: 98,   suffix: '%', label: 'Client Satisfaction', icon: Award },
-  { value: 1200, suffix: '+', label: 'Happy Families',      icon: Users },
-  { value: 7,    suffix: '+', label: 'Years of Excellence', icon: Clock },
+  { value: 507, suffix: '+', label: 'Happy Families',      icon: Users },
+  { value: 18,    suffix: '+', label: 'Years of Excellence', icon: Clock },
 ]
 
 const ABOUT_POINTS = [

@@ -8,9 +8,9 @@ const LINKS = {
 }
 
 const CONTACT_LINES = [
-  [Phone, '+91 98765 43210'],
-  [Mail, 'hello@iconbuilderindia.com'],
-  [MapPin, 'Hyderabad, Telangana, India'],
+  [Phone, '+91 90356 24465'],
+  [Mail, 'info@iconbuilderindia.com'],
+  [MapPin, '#92,Amity Mart Complex,Chambenahali,Sarjapur Road, Bengaluru, India'],
 ]
 
 const SOCIALS = [
@@ -238,12 +238,12 @@ export default function Footer() {
             <Link to="/" className="ftr__brand-link">
               <div className="ftr__logo">
                 <div className="ftr__logo-bg" />
-                <div className="ftr__logo-letter">R</div>
+                <div className="ftr__logo-letter">I</div>
               </div>
               <div>
                 <div className="ftr__brand-name">
-                  <span className="ftr__brand-name-1">RELIA</span>
-                  <span className="ftr__brand-name-2">STATE</span>
+                  <span className="ftr__brand-name-1">ICONBUILDERS</span>
+                  <span className="ftr__brand-name-2">INDIA</span>
                 </div>
                 <div className="ftr__brand-sub">AI-Powered Platform</div>
               </div>
