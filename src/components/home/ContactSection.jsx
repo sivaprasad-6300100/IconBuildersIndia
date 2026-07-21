@@ -9,7 +9,7 @@ const CONTACT_INFO = [
   { icon: Phone,         label: 'Call Us',  value: '+91 98765 43210',           sub: 'Mon–Sat, 9AM–7PM' },
   { icon: MessageCircle, label: 'WhatsApp', value: '+91 98765 43210',           sub: 'Quick response guaranteed' },
   { icon: Mail,          label: 'Email',    value: 'hello@iconbuilderindia.com', sub: 'Reply within 4 hours' },
-  { icon: MapPin,        label: 'Office',   value: 'Hyderabad, Telangana',       sub: 'Serving all of India' },
+  { icon: MapPin,        label: 'Office',   value: '#92,Amity Mart Complex,Chambenahali,Sarjapur Road, Bengaluru, India',       sub: 'Serving all of India' },
 ]
 
 export default function ContactSection() {
@@ -519,7 +519,7 @@ export default function ContactSection() {
                         name="city"
                         value={form.city}
                         onChange={handleChange}
-                        placeholder="Hyderabad, Mumbai..."
+                        placeholder="Banglore, Mumbai..."
                         className="cont__input"
                       />
                     </div>
