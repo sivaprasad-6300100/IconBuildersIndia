@@ -9,7 +9,7 @@ const LINKS = {
 
 const CONTACT_LINES = [
   [Phone, '+91 90356 24465'],
-  [Mail, 'info@iconbuilderindia.com'],
+  [Mail, 'info@iconbuildersindia.com'],
   [MapPin, '#92,Amity Mart Complex,Chambenahali,Sarjapur Road, Bengaluru, India'],
 ]
 

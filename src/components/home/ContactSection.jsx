@@ -6,9 +6,9 @@ import toast from 'react-hot-toast'
 const INQUIRY_TYPES = ['New Construction', 'Renovation', 'Commercial', 'Interior Design', 'Other']
 
 const CONTACT_INFO = [
-  { icon: Phone,         label: 'Call Us',  value: '+91 98765 43210',           sub: 'Mon–Sat, 9AM–7PM' },
-  { icon: MessageCircle, label: 'WhatsApp', value: '+91 98765 43210',           sub: 'Quick response guaranteed' },
-  { icon: Mail,          label: 'Email',    value: 'hello@iconbuilderindia.com', sub: 'Reply within 4 hours' },
+  { icon: Phone,         label: 'Call Us',  value: '+91 90356 24465',           sub: 'Mon–Sat, 9AM–7PM' },
+  { icon: MessageCircle, label: 'WhatsApp', value: '+91 90356 24465',           sub: 'Quick response guaranteed' },
+  { icon: Mail,          label: 'Email',    value: 'info@iconbuildersindia.com', sub: 'Reply within 4 hours' },
   { icon: MapPin,        label: 'Office',   value: '#92,Amity Mart Complex,Chambenahali,Sarjapur Road, Bengaluru, India',       sub: 'Serving all of India' },
 ]
 
