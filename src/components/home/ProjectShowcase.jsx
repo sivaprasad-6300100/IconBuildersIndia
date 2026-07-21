@@ -6,48 +6,49 @@ import building2 from '../../assets/projects/building2.jpeg'
 import building3 from '../../assets/projects/building3.jpeg'
 import building4 from '../../assets/projects/building4.jpeg'
 import building5 from '../../assets/projects/building5.jpeg'
+import building6 from '../../assets/projects/building6.jpeg'
 
 
 
 const PROJECTS = [
   {
-    id: 1, title: 'Luxury Villa — Jubilee Hills', category: 'Villa',
-    location: 'Hyderabad', beds: 4, area: '3200 sqft', budget: '₹1.8 Cr',
+    id: 1, title: 'Luxury Villa — Hoskote Banglore', category: 'Villa',
+    location: 'Banglore', beds: 4, area: '3200 sqft', budget: '₹1.8 Cr',
     status: 'Completed', statusColor: '#4ade80',
     progress: 100, image: building1 , gradientFrom: 'rgba(146,64,14,0.35)',
     desc: 'Premium 4BHK villa with Italian marble flooring, home theatre, and smart home automation.',
   },
   {
-    id: 2, title: 'Modern Apartment — Gachibowli', category: 'Apartment',
-    location: 'Hyderabad', beds: 3, area: '1850 sqft', budget: '₹95 L',
+    id: 2, title: 'Modern Apartment — Sarjapura Banglore', category: 'Apartment',
+    location: 'Banglore', beds: 3, area: '1850 sqft', budget: '₹95 L',
     status: 'In Progress', statusColor: '#c9a84c',
     progress: 68,image : building4, gradientFrom: 'rgba(30,58,138,0.35)',
     desc: 'Contemporary 3BHK apartment with open floor plan, modular kitchen, and rooftop access.',
   },
   {
-    id: 3, title: 'Commercial Complex — Kondapur', category: 'Commercial',
-    location: 'Hyderabad', beds: null, area: '12000 sqft', budget: '₹4.2 Cr',
+    id: 3, title: 'Commercial Complex — Sarjapura Banglore', category: 'Commercial',
+    location: 'Banglore', beds: null, area: '12000 sqft', budget: '₹4.2 Cr',
     status: 'In Progress', statusColor: '#60a5fa',
-    progress: 42, emoji: '🏬', gradientFrom: 'rgba(30,41,59,0.55)',
+    progress: 42, image: building6,gradientFrom: 'rgba(30,41,59,0.55)',
     desc: 'G+3 commercial space with basement parking, glass facade, and modern interiors.',
   },
   {
-    id: 4, title: 'Duplex Home — Banjara Hills', category: 'Villa',
-    location: 'Hyderabad', beds: 5, area: '4500 sqft', budget: '₹2.6 Cr',
+    id: 4, title: 'Duplex Home — Sarjapura Banglore', category: 'Villa',
+    location: 'Banglore', beds: 5, area: '4500 sqft', budget: '₹2.6 Cr',
     status: 'Completed', statusColor: '#4ade80',
     progress: 100,image : building3 ,gradientFrom: 'rgba(6,78,59,0.35)',
     desc: 'Stunning duplex with private pool, landscaped garden, and premium imported fixtures.',
   },
   {
-    id: 5, title: 'Budget Apartment — Miyapur', category: 'Apartment',
-    location: 'Hyderabad', beds: 2, area: '1100 sqft', budget: '₹52 L',
+    id: 5, title: 'Budget Apartment — Hoskote Banglore', category: 'Apartment',
+    location: 'Banglore', beds: 2, area: '1100 sqft', budget: '₹52 L',
     status: 'Completed', statusColor: '#4ade80',
     progress: 100, image : building2,gradientFrom: 'rgba(88,28,135,0.35)',
     desc: 'Affordable 2BHK with quality finishes, vastu compliance, and great connectivity.',
   },
   {
-    id: 6, title: 'IT Office Space — HITEC City', category: 'Commercial',
-    location: 'Hyderabad', beds: null, area: '8500 sqft', budget: '₹3.1 Cr',
+    id: 6, title: 'IT Office Space — Devanahalli', category: 'Commercial',
+    location: 'Banglore', beds: null, area: '8500 sqft', budget: '₹3.1 Cr',
     status: 'Planning', statusColor: '#fb923c',
     progress: 15,image: building5,gradientFrom: 'rgba(124,45,18,0.3)',
     desc: 'State-of-the-art office with open workspaces, conference rooms, and server room.',
