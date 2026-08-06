@@ -298,7 +298,7 @@ export default function Footer() {
 
       <div className="ftr__bottom">
         <div className="ftr__bottom-inner">
-          <p className="ftr__copyright">© {year} ReliaState — iconbuilderindia.com. All rights reserved.</p>
+          <p className="ftr__copyright">© {year} ReliaState — iconbuildersindia.com. All rights reserved.</p>
           <div className="ftr__legal">
             <a href="#" className="ftr__legal-link">Privacy Policy</a>
             <a href="#" className="ftr__legal-link">Terms of Service</a>

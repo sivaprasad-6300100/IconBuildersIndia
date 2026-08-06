@@ -10,6 +10,8 @@ import EstimatorPage from './pages/EstimatorPage'
 import ContractorDashboard from './pages/ContractorDashboard'
 import ClientDashboard from './pages/ClientDashboard'
 import AdminPanel from './pages/AdminPanel'
+import CategoryPage from './pages/CategoryPage'        
+import ProjectGallery from './pages/ProjectGallery'    
 
 // Placeholders until we build each one
 
@@ -33,9 +35,12 @@ export default function App() {
 
         {/* ── Public routes (with Navbar) ── */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
-        <Route path="/coming-soon" element={<ComingSoon />} />
+        {/* <Route path="/coming-soon" element={<ComingSoon />} /> */}
         <Route path="/estimator"  element={<EstimatorPage />} />
         <Route path="/login"      element={<LoginPage />} />
+
+        <Route path="/portfolio/:category" element={<CategoryPage />} />
+        <Route path="/projects/:id"        element={<ProjectGallery />} />
 
         
 

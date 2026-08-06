@@ -431,7 +431,7 @@ export default function HowItWorks() {
             <span className="hiw__heading-accent">Step by Step</span>
           </h2>
           <p className="hiw__subtitle">
-            From the first call to final handover — here's exactly how ReliaState
+            From the first call to final handover — here's exactly how IconBuilders
             makes your construction stress-free.
           </p>
         </motion.div>

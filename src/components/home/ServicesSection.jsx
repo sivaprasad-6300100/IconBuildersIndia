@@ -427,7 +427,7 @@ export default function ServicesSection() {
             <span className="svc__heading-accent">In One Platform</span>
           </h2>
           <p className="svc__subtitle">
-            From first estimate to final handover — ReliaState covers every stage
+            From first estimate to final handover — IconBuilders covers every stage
             of your construction journey with intelligent tools.
           </p>
         </motion.div>

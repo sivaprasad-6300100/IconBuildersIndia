@@ -15,17 +15,17 @@ const QUICK_REPLIES = [
 ]
 
 // ── System prompt for Claude ──────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are ReliaState AI Assistant — a friendly, knowledgeable construction and real estate expert for IconBuilderIndia.com.
+const SYSTEM_PROMPT = `You are IconBuilders AI Assistant — a friendly, knowledgeable construction and real estate expert for IconBuilderIndia.com.
 
 You help clients with:
 - Construction cost estimates (standard rate: ₹1800-3200 per sqft depending on quality)
 - Material recommendations (budget, standard, premium tiers)
 - Project timeline guidance (typical: 6-14 months depending on size)
-- Explaining ReliaState platform features (live tracking, OTP login, 3 dashboards)
+- Explaining IconBuilders platform features (live tracking, OTP login, 3 dashboards)
 - Construction process questions (foundation, structure, finishing stages)
 - Connecting clients with the team via WhatsApp: +91 98765 43210
 
-ReliaState platform features:
+IconBuilders platform features:
 - Client Dashboard: live milestone tracking, photo gallery, payment view
 - Contractor Dashboard: photo uploads, milestone updates
 - Admin Panel: full project management
@@ -80,7 +80,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: '👋 Hi! I\'m ReliaState AI — your 24/7 construction assistant. Ask me anything about costs, materials, timelines, or how our platform works!',
+      content: '👋 Hi! I\'m IconBuilders AI — your 24/7 construction assistant. Ask me anything about costs, materials, timelines, or how our platform works!',
     },
   ])
   const [input, setInput]       = useState('')
@@ -171,7 +171,7 @@ export default function ChatWidget() {
     if (t.includes('track') || t.includes('progress') || t.includes('photo') || t.includes('dashboard'))
       return '📊 Your Client Dashboard shows live milestone progress, daily site photos uploaded by your contractor, payment tracking, and real-time notifications — all in one place!'
     if (t.includes('login') || t.includes('otp') || t.includes('password') || t.includes('account'))
-      return '🔐 ReliaState uses secure OTP-based login — no passwords needed! Enter your phone number, get an OTP via SMS, and you\'re in. Role-based access ensures you only see your own project.'
+      return '🔐 IconBuilders uses secure OTP-based login — no passwords needed! Enter your phone number, get an OTP via SMS, and you\'re in. Role-based access ensures you only see your own project.'
     if (t.includes('whatsapp') || t.includes('contact') || t.includes('call') || t.includes('team'))
       return '📱 You can reach our team directly on WhatsApp: +91 98765 43210. We respond within 2 hours (Mon–Sat, 9AM–7PM). You can also use the Contact form on our homepage!'
     if (t.includes('floor') || t.includes('foundation') || t.includes('stage') || t.includes('phase'))
@@ -184,7 +184,7 @@ export default function ChatWidget() {
   const resetChat = () => {
     setMessages([{
       role: 'assistant',
-      content: '👋 Chat reset! I\'m ReliaState AI — ask me anything about construction costs, materials, timelines, or our platform!',
+      content: '👋 Chat reset! I\'m IconBuilders AI — ask me anything about construction costs, materials, timelines, or our platform!',
     }])
   }
 
@@ -245,7 +245,7 @@ export default function ChatWidget() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-cream font-bold text-sm">ReliaState AI</span>
+                  <span className="text-cream font-bold text-sm">IconBuilders AI</span>
                   <Sparkles size={11} className="text-gold" />
                 </div>
                 <span className="text-[11px] text-green-400 font-medium">● Online 24/7</span>

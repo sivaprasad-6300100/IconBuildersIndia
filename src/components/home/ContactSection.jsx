@@ -2,8 +2,15 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Phone, Mail, MapPin, MessageCircle, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { API_BASE } from '../../services/api'
 
-const INQUIRY_TYPES = ['New Construction', 'Renovation', 'Commercial', 'Interior Design', 'Other']
+const INQUIRY_TYPES = [
+  { label: 'New Construction', value: 'new_construction' },
+  { label: 'Renovation',       value: 'renovation' },
+  { label: 'Commercial',       value: 'commercial' },
+  { label: 'Interior Design',  value: 'interior' },
+  { label: 'Other',            value: 'other' },
+]
 
 const CONTACT_INFO = [
   { icon: Phone,         label: 'Call Us',  value: '+91 90356 24465',           sub: 'Mon–Sat, 9AM–7PM' },
@@ -15,30 +22,52 @@ const CONTACT_INFO = [
 export default function ContactSection() {
   const [form, setForm] = useState({
     name: '', phone: '', email: '', city: '',
-    inquiryType: 'New Construction', plotSize: '', message: '',
+    inquiryType: 'new_construction', plotSize: '', message: '',
   })
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [reference, setReference] = useState('')
 
   const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name || !form.phone) { toast.error('Please fill name and phone number'); return }
-    if (form.phone.length < 10) { toast.error('Enter a valid 10-digit phone number'); return }
+    if (form.phone.replace(/\D/g, '').length < 10) { toast.error('Enter a valid 10-digit phone number'); return }
+
     setLoading(true)
     try {
-      await fetch('/api/inquiries', {
+      const res = await fetch(`${API_BASE}/api/inquiries/submit/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim() || undefined,
+          city: form.city.trim(),
+          inquiry_type: form.inquiryType,
+          plot_size: form.plotSize.trim(),
+          message: form.message.trim(),
+          source: 'website',
+        }),
       })
-    } catch {}
-    setTimeout(() => {
-      setLoading(false)
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        const firstError = Object.values(data)[0]
+        toast.error(Array.isArray(firstError) ? firstError[0] : 'Something went wrong. Please try again.')
+        return
+      }
+
+      setReference(data.reference)
       setSubmitted(true)
       toast.success("Inquiry submitted! We'll call you within 24 hours.")
-    }, 800)
+    } catch {
+      toast.error('Network error — please check your connection and try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -72,7 +101,6 @@ export default function ContactSection() {
           margin: 0 auto;
         }
 
-        /* ── Title ── */
         .cont__title-wrap {
           text-align: center;
           margin-bottom: 4rem;
@@ -111,7 +139,6 @@ export default function ContactSection() {
           line-height: 1.7;
         }
 
-        /* ── Layout ── */
         .cont__grid {
           display: grid;
           grid-template-columns: 1fr;
@@ -122,7 +149,6 @@ export default function ContactSection() {
           .cont__grid { grid-template-columns: 2fr 3fr; gap: 2.5rem; }
         }
 
-        /* ── Left info column ── */
         .cont__info-list {
           display: flex;
           flex-direction: column;
@@ -195,7 +221,6 @@ export default function ContactSection() {
           transform: translateY(-2px);
         }
 
-        /* ── Right form column ── */
         .cont__form-card {
           position: relative;
           background: rgba(255,255,255,0.03);
@@ -318,7 +343,6 @@ export default function ContactSection() {
           margin: 0;
         }
 
-        /* ── Success state ── */
         .cont__success {
           display: flex;
           flex-direction: column;
@@ -361,9 +385,6 @@ export default function ContactSection() {
           font-weight: 700;
         }
 
-        /* ══════════════════════════════════════════
-           MOBILE (≤640px)
-           ══════════════════════════════════════════ */
         @media (max-width: 640px) {
           .cont { padding: 3.5rem 1rem; }
           .cont__title-wrap { margin-bottom: 2.5rem; }
@@ -406,7 +427,6 @@ export default function ContactSection() {
         </motion.div>
 
         <div className="cont__grid">
-          {/* Left — contact info */}
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -445,7 +465,6 @@ export default function ContactSection() {
             </a>
           </motion.div>
 
-          {/* Right — form */}
           <motion.div
             initial={{ opacity: 0, x: 40 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -470,7 +489,7 @@ export default function ContactSection() {
                     and free cost estimate.
                   </p>
                   <div className="cont__success-ref">
-                    Reference: REL-{Math.floor(Math.random() * 9000) + 1000}
+                    Reference: REL-{reference}
                   </div>
                 </motion.div>
               ) : (
@@ -535,7 +554,7 @@ export default function ContactSection() {
                         className="cont__select"
                       >
                         {INQUIRY_TYPES.map((t) => (
-                          <option key={t}>{t}</option>
+                          <option key={t.value} value={t.value}>{t.label}</option>
                         ))}
                       </select>
                     </div>

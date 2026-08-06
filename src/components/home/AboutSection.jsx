@@ -567,7 +567,7 @@ export default function AboutSection() {
         >
           <div className="about__badge">
             <span className="about__badge-dot" />
-            <span className="about__badge-text">About ReliaState</span>
+            <span className="about__badge-text">About IconBuilders</span>
           </div>
           <h2 className="about__title">
             Built for India's <span className="about__title-accent">Construction Industry</span>
@@ -597,7 +597,7 @@ export default function AboutSection() {
           >
             <h3 className="about__heading">
               Why builders & clients<br />
-              <span className="about__heading-accent">choose ReliaState</span>
+              <span className="about__heading-accent">choose IconBuilders</span>
             </h3>
 
             <div className="about__points">

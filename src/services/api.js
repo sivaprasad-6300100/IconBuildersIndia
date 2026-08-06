@@ -1,8 +1,13 @@
 import axios from 'axios'
 
+// ── Base URL string ─────────────────────────────────────────────────────────
+// Exported on its own so plain `fetch()` calls (portfolio pages) can use the
+// same URL + env var as the axios instance below, instead of hardcoding it.
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
 // ── Base instance ─────────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 })
 
