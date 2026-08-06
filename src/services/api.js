@@ -18,11 +18,21 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// ── Handle 401 — auto logout ──────────────────────────────────────────────────
+// ── Endpoints where a 401 means "wrong credentials", not "session expired" ───
+const AUTH_ENDPOINTS = [
+  '/api/auth/admin-login/',
+  '/api/auth/send-otp/',
+  '/api/auth/verify-otp/',
+]
+
+// ── Handle 401 — auto logout (but not for login/OTP requests themselves) ─────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || ''
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((path) => url.includes(path))
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('rs_user')
       localStorage.removeItem('rs_token')
       localStorage.removeItem('rs_refresh')
