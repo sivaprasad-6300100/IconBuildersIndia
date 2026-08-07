@@ -51,8 +51,8 @@ function StageBadge({ status }) {
 // ── Overview Tab ─────────────────────────────────────────────────────────────
 function Overview({ projects, setTab }) {
   const active = projects.filter(p => p.status === 'in_progress' || p.status === 'planning')
-  const totalPaid = projects.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
-  const totalPending = projects.reduce((sum, p) => sum + (Number(p.total_budget || 0) - Number(p.amount_paid || 0)), 0)
+  const totalPaid = projects.reduce((sum, p) => sum + Number(p.contractor_paid || 0), 0)
+  const totalPending = projects.reduce((sum, p) => sum + (Number(p.contractor_fee || 0) - Number(p.contractor_paid || 0)), 0)
   const avgProgress = projects.length
     ? Math.round(projects.reduce((s, p) => s + Number(p.progress_percent || 0), 0) / projects.length)
     : 0
@@ -152,7 +152,7 @@ function ProjectsTab({ projects, fetched }) {
             </div>
             <div className="cn__project-card-footer">
               <span className="cn__project-pct">{p.progress_percent || 0}% complete</span>
-              <span className="cn__project-due">Budget {fmt(p.total_budget)}</span>
+              <span className="cn__project-due">Budget {fmt(p.contractor_fee)}</span>
             </div>
           </motion.div>
         ))}
@@ -163,8 +163,8 @@ function ProjectsTab({ projects, fetched }) {
 
 // ── Payments Tab (read-only for contractor) ──────────────────────────────────
 function PaymentsTab({ projects, fetched }) {
-  const totalBudget = projects.reduce((s, p) => s + Number(p.total_budget || 0), 0)
-  const totalPaid   = projects.reduce((s, p) => s + Number(p.amount_paid || 0), 0)
+  const totalBudget = projects.reduce((s, p) => s + Number(p.contractor_fee || 0), 0)
+  const totalPaid   = projects.reduce((s, p) => s + Number(p.contractor_paid || 0), 0)
   const totalDue    = totalBudget - totalPaid
 
   return (
@@ -187,8 +187,8 @@ function PaymentsTab({ projects, fetched }) {
         {fetched && projects.length === 0 && <p className="cn__empty-text">No projects yet.</p>}
         <div className="cn__stack cn__stack--tight">
           {projects.map((p, i) => {
-            const paid = Number(p.amount_paid || 0)
-            const due = Number(p.total_budget || 0) - paid
+            const paid = Number(p.contractor_paid || 0)
+            const due = Number(p.contractor_fee || 0) - paid
             return (
               <motion.div key={p.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.06 }} className="cn__pay-row">
@@ -196,7 +196,7 @@ function PaymentsTab({ projects, fetched }) {
                   <div className="cn__pay-icon"><Wallet size={15} color="#c9a84c" /></div>
                   <div className="cn__pay-info">
                     <p className="cn__pay-name">{p.name}</p>
-                    <p className="cn__pay-date">{fmt(paid)} received of {fmt(p.total_budget)}</p>
+                    <p className="cn__pay-date">{fmt(paid)} received of {fmt(p.contractor_fee)}</p>
                   </div>
                 </div>
                 <div className="cn__pay-right">
