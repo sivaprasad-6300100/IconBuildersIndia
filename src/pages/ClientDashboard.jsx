@@ -227,7 +227,7 @@ function Photos({ photos }) {
             className="cd__photo-card cd__photo-card--lg">
             <img src={p.image} alt={p.caption || 'Site photo'} className="cd__photo-img" />
             {p.caption && <div className="cd__photo-label">{p.caption}</div>}
-            <div className="cd__photo-date">{fmtDate(p.uploaded_at)}</div>
+            <div className="cd__photo-date">{fmtDate(p.created_at)}</div>
           </motion.div>
         ))}
       </div>
@@ -354,7 +354,15 @@ export default function ClientDashboard() {
       setProject(res.data)
       setMilestones(res.data.milestones || [])
       setPhotos(res.data.site_photos || [])
-      setPayments(res.data.payments || [])
+      setPayments(
+        (res.data.client_payments || []).map(p => ({
+          id: p.id,
+          label: 'Payment',
+          amount: p.amount,
+          status: 'Paid',
+          paid_date: p.date,
+        }))
+      )
     } catch (err) {
       if (err.response?.status === 404) {
         setLoadError('No project has been assigned to your account yet. Contact your admin.')

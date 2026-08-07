@@ -1065,10 +1065,10 @@ function ClientsTab() {
     setLoading(true)
     try {
       if (editClient) {
-        const res = await api.put(`/api/users/${editClient.id}/`, {
-          name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || undefined,
+        await api.put(`/api/users/${editClient.id}/`, {
+          name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || undefined
         })
-        setClients((prev) => prev.map((c) => (c.id === editClient.id ? { ...c, ...res.data } : c)))
+        await fetchClients()
         toast.success(`${form.name} updated`)
         setShowModal(false)
         setEditClient(null)
@@ -1349,10 +1349,10 @@ function ContractorsTab() {
     setLoading(true)
     try {
       if (editContractor) {
-        const res = await api.put(`/api/users/${editContractor.id}/`, {
+        await api.put(`/api/users/${editContractor.id}/`, {
           name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || undefined,
         })
-        setContractors((prev) => prev.map((c) => (c.id === editContractor.id ? { ...c, ...res.data } : c)))
+        await fetchContractors()
         toast.success(`${form.name} updated`)
         setShowModal(false)
         setEditContractor(null)

@@ -213,8 +213,32 @@ function PaymentsTab({ projects, fetched }) {
 }
 
 // ── Photos Tab (upload) ───────────────────────────────────────────────────────
+
 function PhotosTab({ projects, fetched }) {
   const [uploadingId, setUploadingId] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
+  const [photosByProject, setPhotosByProject] = useState({})
+  const [loadingPhotos, setLoadingPhotos] = useState(false)
+
+  const loadPhotos = async (projectId) => {
+    setLoadingPhotos(true)
+    try {
+      const res = await api.get(`/api/photos/${projectId}/`)
+      setPhotosByProject(prev => ({ ...prev, [projectId]: res.data }))
+    } catch {
+      toast.error('Could not load photos for this project')
+    }
+    setLoadingPhotos(false)
+  }
+
+  const toggleExpand = (projectId) => {
+    if (expandedId === projectId) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(projectId)
+    if (!photosByProject[projectId]) loadPhotos(projectId)
+  }
 
   const handleUpload = async (e, project) => {
     const files = e.target.files
@@ -232,6 +256,8 @@ function PhotosTab({ projects, fetched }) {
       })
       await Promise.all(uploads)
       toast.success(`Uploaded ${files.length} photo(s) to "${project.name}"`)
+      setExpandedId(project.id)
+      await loadPhotos(project.id)
     } catch {
       toast.error('Upload failed. Please try again.')
     } finally {
@@ -245,30 +271,75 @@ function PhotosTab({ projects, fetched }) {
       <h3 className="cn__card-title cn__card-title--lg">Upload Site Photos</h3>
       {fetched && projects.length === 0 && <p className="cn__empty-text">No projects assigned yet.</p>}
       <div className="cn__stack cn__stack--tight">
-        {projects.map((p, i) => (
-          <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }} className="cn__list-card">
-            <div className="cn__project-icon"><Building2 size={14} color="#c9a84c" /></div>
-            <div className="cn__list-info">
-              <p className="cn__list-name">{p.name}</p>
-              <p className="cn__list-sub">{p.client_name || 'Client'}</p>
-            </div>
-            <label className="cn__btn-gold" style={{ cursor: 'pointer' }}>
-              <UploadCloud size={13} />
-              {uploadingId === p.id ? 'Uploading...' : 'Upload'}
-              <input
-                type="file" accept="image/*" multiple hidden
-                disabled={uploadingId === p.id}
-                onChange={(e) => handleUpload(e, p)}
-              />
-            </label>
-          </motion.div>
-        ))}
+        {projects.map((p, i) => {
+          const photos = photosByProject[p.id]
+          const isExpanded = expandedId === p.id
+          return (
+            <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06 }} className="cn__list-card" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%' }}>
+                <div className="cn__project-icon"><Building2 size={14} color="#c9a84c" /></div>
+                <div className="cn__list-info">
+                  <p className="cn__list-name">{p.name}</p>
+                  <p className="cn__list-sub">{p.client_name || 'Client'}</p>
+                </div>
+
+                <button
+                  onClick={() => toggleExpand(p.id)}
+                  style={{ background: 'none', border: 'none', color: '#8fa3b8', fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {isExpanded ? 'Hide photos' : `View photos${photos ? ` (${photos.length})` : ''}`}
+                </button>
+
+                <label className="cn__btn-gold" style={{ cursor: 'pointer' }}>
+                  <UploadCloud size={13} />
+                  {uploadingId === p.id ? 'Uploading...' : 'Upload'}
+                  <input
+                    type="file" accept="image/*" multiple hidden
+                    disabled={uploadingId === p.id}
+                    onChange={(e) => handleUpload(e, p)}
+                  />
+                </label>
+              </div>
+
+              {isExpanded && (
+                <div style={{ marginTop: '0.85rem', width: '100%' }}>
+                  {loadingPhotos && !photos && (
+                    <p className="cn__empty-text">Loading photos…</p>
+                  )}
+                  {photos && photos.length === 0 && (
+                    <p className="cn__empty-text">No photos uploaded yet for this project.</p>
+                  )}
+                  {photos && photos.length > 0 && (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
+                      gap: '0.5rem',
+                    }}>
+                      {photos.map(photo => (
+                        <a key={photo.id} href={photo.image_url} target="_blank" rel="noreferrer">
+                          <img
+                            src={photo.image_url}
+                            alt={photo.caption || 'Site photo'}
+                            style={{
+                              width: '100%', height: '90px', objectFit: 'cover',
+                              borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )
+        })}
       </div>
     </div>
   )
 }
-
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function ContractorDashboard() {
   const [activeTab, setActiveTab] = useState('overview')
