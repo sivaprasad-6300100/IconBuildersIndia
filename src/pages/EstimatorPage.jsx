@@ -2,42 +2,16 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, animate } from 'framer-motion'
 import {
   Home, Building2, Layers, MapPin, Sparkles, Wrench,
-  Clock, Download, MessageCircle, CheckCircle2,
+  Clock, Download, MessageCircle, CheckCircle2, Loader2,ArrowLeft,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import api from '../services/api'   // adjust path if your axios instance lives elsewhere
 
-// ── Static data ──────────────────────────────────────────────────────────
-const CITIES = [
-  { name: 'Hyderabad', rate: 1750 },
-  { name: 'Bangalore', rate: 2100 },
-  { name: 'Mumbai', rate: 2600 },
-  { name: 'Pune', rate: 1950 },
-  { name: 'Chennai', rate: 1850 },
-  { name: 'Delhi NCR', rate: 2200 },
-]
+const API_URL = '/api/estimator/config/'
 
-const CONSTRUCTION_TYPES = [
-  { id: 'residential', label: 'Residential Home', icon: Home },
-  { id: 'villa', label: 'Villa', icon: Building2 },
-  { id: 'apartment', label: 'Apartment', icon: Layers },
-  { id: 'commercial', label: 'Commercial', icon: Building2 },
-]
-
-const QUALITY_TIERS = [
-  { id: 'basic', label: 'Basic', multiplier: 1, desc: 'Standard fittings, functional finish' },
-  { id: 'standard', label: 'Standard', multiplier: 1.3, desc: 'Branded fittings, quality tiles' },
-  { id: 'premium', label: 'Premium', multiplier: 1.7, desc: 'Designer finish, modular interiors' },
-  { id: 'luxury', label: 'Luxury', multiplier: 2.3, desc: 'Imported materials, bespoke design' },
-]
-
-const ADD_ONS = [
-  { id: 'kitchen', label: 'Modular Kitchen', cost: 250000, icon: Wrench },
-  { id: 'pool', label: 'Swimming Pool', cost: 800000, icon: Sparkles },
-  { id: 'automation', label: 'Home Automation', cost: 150000, icon: Sparkles },
-  { id: 'solar', label: 'Solar Panels', cost: 300000, icon: Sparkles },
-  { id: 'landscape', label: 'Landscaping & Garden', cost: 200000, icon: Sparkles },
-  { id: 'interior', label: 'Full Interior Design', costPerSqft: 350, icon: Wrench },
-]
+// ── Icon lookup — maps backend icon keys to lucide components ────────────────
+const CONSTRUCTION_TYPE_ICONS = { home: Home, building: Building2, layers: Layers }
+const ADDON_ICONS = { wrench: Wrench, sparkles: Sparkles }
 
 const BREAKDOWN = [
   { label: 'Structure', pct: 0.38, mod: 'structure' },
@@ -67,28 +41,73 @@ function AnimatedNumber({ value }) {
 }
 
 export default function EstimatorPage() {
+  // ── Config fetched from backend ──────────────────────────────────────────
+  const [config, setConfig] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // ── User inputs ───────────────────────────────────────────────────────────
   const [plotSize, setPlotSize] = useState(1500)
   const [floors, setFloors] = useState(2)
-  const [city, setCity] = useState(CITIES[0].name)
-  const [type, setType] = useState('residential')
-  const [quality, setQuality] = useState('standard')
+  const [city, setCity] = useState(null)
+  const [type, setType] = useState(null)
+  const [quality, setQuality] = useState(null)
   const [addOns, setAddOns] = useState([])
+
+  // ── Fetch estimator config on mount ──────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    const fetchConfig = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await api.get(API_URL)
+        if (cancelled) return
+        const data = res.data
+        setConfig(data)
+        // Set sensible defaults once data arrives
+        if (data.cities?.length) setCity(data.cities[0].name)
+        if (data.construction_types?.length) setType(data.construction_types[0].key)
+        if (data.quality_tiers?.length) {
+          const mid = data.quality_tiers[Math.min(1, data.quality_tiers.length - 1)]
+          setQuality(mid.key)
+        }
+      } catch (err) {
+        if (!cancelled) setError('Could not load estimator data. Please try again.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchConfig()
+    return () => { cancelled = true }
+  }, [])
+
+  const cities = config?.cities || []
+  const qualityTiers = config?.quality_tiers || []
+  const addOnsList = config?.add_ons || []
+  const constructionTypes = config?.construction_types || []
 
   const toggleAddOn = (id) =>
     setAddOns((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]))
 
   const calc = useMemo(() => {
-    const cityRate = CITIES.find((c) => c.name === city)?.rate || 1800
-    const qualityMult = QUALITY_TIERS.find((q) => q.id === quality)?.multiplier || 1
+    if (!config || !city || !type || !quality) {
+      return { baseCost: 0, addOnCost: 0, total: 0, perSqft: 0, months: 0 }
+    }
+
+    const cityRate = cities.find((c) => c.name === city)?.rate_per_sqft || 1800
+    const qualityMult = Number(qualityTiers.find((q) => q.key === quality)?.multiplier) || 1
     const floorsFactor = 1 + (floors - 1) * 0.82
-    const typeAdj = type === 'commercial' ? 1.15 : type === 'villa' ? 1.1 : 1
+    const typeAdj = Number(constructionTypes.find((t) => t.key === type)?.adjustment_factor) || 1
 
     const baseCost = plotSize * cityRate * qualityMult * floorsFactor * typeAdj
 
     const addOnCost = addOns.reduce((sum, id) => {
-      const item = ADD_ONS.find((a) => a.id === id)
+      const item = addOnsList.find((a) => a.id === id)
       if (!item) return sum
-      return sum + (item.costPerSqft ? item.costPerSqft * plotSize : item.cost)
+      if (item.cost_per_sqft) return sum + item.cost_per_sqft * plotSize
+      if (item.cost) return sum + item.cost
+      return sum
     }, 0)
 
     const total = baseCost + addOnCost
@@ -96,7 +115,44 @@ export default function EstimatorPage() {
     const months = Math.round(6 + floors * 2 + plotSize / 900)
 
     return { baseCost, addOnCost, total, perSqft, months }
-  }, [plotSize, floors, city, type, quality, addOns])
+  }, [plotSize, floors, city, type, quality, addOns, config, cities, qualityTiers, addOnsList, constructionTypes])
+
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="est est--center">
+        <style>{`
+          .est--center { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #071422; }
+          .est__spin { animation: est-spin 1s linear infinite; color: #c9a84c; }
+          @keyframes est-spin { to { transform: rotate(360deg); } }
+        `}</style>
+        <Loader2 size={32} className="est__spin" />
+      </div>
+    )
+  }
+
+  // ── Error state ───────────────────────────────────────────────────────────
+  if (error || !config) {
+    return (
+      <div className="est est--center">
+        <style>{`
+          .est--center {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; background: #071422; color: #8fa3b8; gap: 1rem; text-align: center; padding: 2rem;
+          }
+          .est__retry-btn {
+            padding: 0.75rem 1.5rem; border-radius: 0.75rem;
+            background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
+            color: #071422; border: none; font-weight: 600; cursor: pointer;
+          }
+        `}</style>
+        <p>{error || 'Something went wrong loading the estimator.'}</p>
+        <button className="est__retry-btn" onClick={() => window.location.reload()}>
+          Try Again
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="est">
@@ -303,6 +359,26 @@ export default function EstimatorPage() {
         .est__quality-desc { font-size: 0.75rem; color: #5f7285; margin: 0.15rem 0 0; }
         .est__quality-check { color: #c9a84c; flex-shrink: 0; }
 
+        /* Tier spec list — shows what's included when a tier is selected */
+        .est__spec-list {
+          padding: 0.75rem 1rem 0.25rem;
+          margin-top: -0.25rem;
+          margin-bottom: 0.5rem;
+          border-left: 2px solid rgba(201,168,76,0.3);
+          margin-left: 0.75rem;
+        }
+        .est__spec-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.8rem;
+          padding: 0.25rem 0;
+          color: #8fa3b8;
+        }
+        .est__spec-check { color: #c9a84c; flex-shrink: 0; }
+        .est__spec-cat { color: #5f7285; min-width: 5.5rem; flex-shrink: 0; }
+        .est__spec-item { color: #e8d5a3; }
+
         /* Add-ons */
         .est__addon-grid {
           display: grid;
@@ -449,7 +525,17 @@ export default function EstimatorPage() {
           background: transparent;
           color: #8fa3b8;
         }
-        .est__btn--outline:hover { border-color: rgba(201,168,76,0.4); color: #c9a84c; }
+        .est__back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          color: #8fa3b8;
+          font-size: 0.85rem;
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+        .est__back-btn:hover { color: #c9a84c; }
+                .est__btn--outline:hover { border-color: rgba(201,168,76,0.4); color: #c9a84c; }
 
         .est__disclaimer {
           font-size: 0.75rem;
@@ -458,6 +544,13 @@ export default function EstimatorPage() {
           padding: 0 1rem;
         }
       `}</style>
+
+      {/* Back button */}
+      <div style={{ maxWidth: '72rem', margin: '0 auto', padding: '0 1.5rem', marginBottom: '1rem' }}>
+        <Link to="/" className="est__back-btn">
+          <ArrowLeft size={16} /> Back
+        </Link>
+      </div>
 
       {/* Header */}
       <div className="est__header">
@@ -513,9 +606,9 @@ export default function EstimatorPage() {
               <MapPin size={14} color="#c9a84c" /> City
             </label>
             <div className="est__city-grid">
-              {CITIES.map((c) => (
+              {cities.map((c) => (
                 <button
-                  key={c.name}
+                  key={c.id}
                   onClick={() => setCity(c.name)}
                   className={`est__city-btn ${city === c.name ? 'est__city-btn--active' : ''}`}
                 >
@@ -529,13 +622,13 @@ export default function EstimatorPage() {
           <div className="est__card">
             <label className="est__label est__label--block">Construction Type</label>
             <div className="est__type-grid">
-              {CONSTRUCTION_TYPES.map((t) => {
-                const Icon = t.icon
+              {constructionTypes.map((t) => {
+                const Icon = CONSTRUCTION_TYPE_ICONS[t.icon] || Building2
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setType(t.id)}
-                    className={`est__type-btn ${type === t.id ? 'est__type-btn--active' : ''}`}
+                    onClick={() => setType(t.key)}
+                    className={`est__type-btn ${type === t.key ? 'est__type-btn--active' : ''}`}
                   >
                     <Icon size={16} /> {t.label}
                   </button>
@@ -544,22 +637,35 @@ export default function EstimatorPage() {
             </div>
           </div>
 
-          {/* Quality tier */}
+          {/* Quality tier — expands to show included items (flooring, paint, etc.) */}
           <div className="est__card">
             <label className="est__label est__label--block">Finish Quality</label>
             <div className="est__quality-list">
-              {QUALITY_TIERS.map((q) => (
-                <button
-                  key={q.id}
-                  onClick={() => setQuality(q.id)}
-                  className={`est__quality-btn ${quality === q.id ? 'est__quality-btn--active' : ''}`}
-                >
-                  <div>
-                    <p className={`est__quality-label ${quality === q.id ? 'est__quality-label--active' : ''}`}>{q.label}</p>
-                    <p className="est__quality-desc">{q.desc}</p>
-                  </div>
-                  {quality === q.id && <CheckCircle2 size={18} className="est__quality-check" />}
-                </button>
+              {qualityTiers.map((q) => (
+                <div key={q.id}>
+                  <button
+                    onClick={() => setQuality(q.key)}
+                    className={`est__quality-btn ${quality === q.key ? 'est__quality-btn--active' : ''}`}
+                  >
+                    <div>
+                      <p className={`est__quality-label ${quality === q.key ? 'est__quality-label--active' : ''}`}>{q.label}</p>
+                      <p className="est__quality-desc">{q.description}</p>
+                    </div>
+                    {quality === q.key && <CheckCircle2 size={18} className="est__quality-check" />}
+                  </button>
+
+                  {quality === q.key && q.specs?.length > 0 && (
+                    <div className="est__spec-list">
+                      {q.specs.map((s) => (
+                        <div key={s.id} className="est__spec-row">
+                          <CheckCircle2 size={13} className="est__spec-check" />
+                          <span className="est__spec-cat">{s.category}</span>
+                          <span className="est__spec-item">{s.item_label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -568,8 +674,8 @@ export default function EstimatorPage() {
           <div className="est__card">
             <label className="est__label est__label--block">Add-ons</label>
             <div className="est__addon-grid">
-              {ADD_ONS.map((a) => {
-                const Icon = a.icon
+              {addOnsList.map((a) => {
+                const Icon = ADDON_ICONS[a.icon] || Sparkles
                 const active = addOns.includes(a.id)
                 return (
                   <button

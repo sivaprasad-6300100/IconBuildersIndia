@@ -9,6 +9,7 @@ import {
   UserPlus, Eye, Trash2, Search, BarChart3,
   Building2, MessageSquare, ShieldCheck,
   Image, UploadCloud, Pencil, AlertTriangle,
+  Calculator, MapPin, Plus,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import api from '../services/api'
@@ -24,6 +25,7 @@ const NAV = [
   { id: 'clients',     label: 'Clients',     icon: Users },
   { id: 'contractors', label: 'Contractors', icon: HardHat },
   { id: 'inquiries',   label: 'Inquiries',   icon: MessageSquare },
+  { id: 'estimator',   label: 'Estimator',   icon: Calculator },
   { id: 'analytics',   label: 'Analytics',   icon: BarChart3 },
   { id: 'settings',    label: 'Settings',    icon: Settings },
 ]
@@ -2168,6 +2170,994 @@ function InquiriesTab() {
   )
 }
 
+// ── Estimator Tab (admin-managed cities, tiers, add-ons, construction types) ──
+
+const EST_SUBTABS = [
+  { id: 'cities', label: 'Cities & Rates' },
+  { id: 'tiers', label: 'Quality Tiers' },
+  { id: 'addons', label: 'Add-ons' },
+  { id: 'types', label: 'Construction Types' },
+  { id: 'floors', label: 'Floor Options' },
+]
+
+// Generic inline-edit row: click a value to edit it directly, Enter/blur saves.
+function InlineNumber({ value, onSave, prefix = '₹', suffix = '' }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(value)
+
+  useEffect(() => { setVal(value) }, [value])
+
+  const commit = () => {
+    setEditing(false)
+    if (Number(val) !== Number(value) && val !== '') onSave(Number(val))
+    else setVal(value)
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="ap__action-btn"
+        style={{ width: 'auto', padding: '0.35rem 0.75rem', color: '#c9a84c', fontWeight: 700 }}
+        title="Click to edit"
+      >
+        {prefix}{Number(value).toLocaleString('en-IN')}{suffix}
+      </button>
+    )
+  }
+  return (
+    <input
+      autoFocus
+      type="number"
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setVal(value); setEditing(false) } }}
+      className="ap__form-input"
+      style={{ width: '8rem', padding: '0.4rem 0.6rem' }}
+    />
+  )
+}
+
+
+function TierSpecsEditor({ tier, onClose }) {
+  const [specs, setSpecs] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [categories, setCategories] = useState([])
+  const [categoriesFetched, setCategoriesFetched] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [itemLabel, setItemLabel] = useState('')
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const fetchSpecs = async () => {
+    try {
+      const res = await api.get(`/api/estimator/admin/quality-tiers/${tier.id}/specs/`)
+      setSpecs(res.data)
+    } catch {
+      toast.error('Failed to load tier items')
+    }
+    setFetched(true)
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/api/estimator/admin/spec-categories/')
+      setCategories(res.data)
+    } catch {
+      toast.error('Failed to load categories')
+    }
+    setCategoriesFetched(true)
+  }
+
+  useEffect(() => {
+    fetchSpecs()
+    fetchCategories()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const createCategory = async () => {
+    if (!newCategoryName.trim()) { toast.error('Enter a category name'); return }
+    setAddingCategory(true)
+    try {
+      const res = await api.post('/api/estimator/admin/spec-categories/', {
+        name: newCategoryName.trim(), order: categories.length,
+      })
+      setCategories((prev) => [...prev, res.data])
+      setSelectedCategory(String(res.data.id))
+      setNewCategoryName('')
+      toast.success(`Category "${res.data.name}" added`)
+    } catch (err) {
+      toast.error(err.response?.data?.name?.[0] || 'Failed to add category')
+    } finally {
+      setAddingCategory(false)
+    }
+  }
+
+  const addSpec = async () => {
+    if (!selectedCategory) { toast.error('Select a category'); return }
+    if (!itemLabel.trim()) { toast.error('Enter an item'); return }
+    setSaving(true)
+    try {
+      const res = await api.post(`/api/estimator/admin/quality-tiers/${tier.id}/specs/`, {
+        category: Number(selectedCategory),
+        item_label: itemLabel.trim(),
+      })
+      // Backend upserts on (tier, category) — replace if it already existed, else append
+      setSpecs((prev) => {
+        const exists = prev.some((s) => s.category_name === res.data.category_name)
+        return exists
+          ? prev.map((s) => (s.category_name === res.data.category_name ? res.data : s))
+          : [...prev, res.data]
+      })
+      setItemLabel('')
+      toast.success('Item saved')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to add item')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removeSpec = async (specId) => {
+    try {
+      await api.delete(`/api/estimator/admin/tier-specs/${specId}/`)
+      setSpecs((prev) => prev.filter((s) => s.id !== specId))
+    } catch {
+      toast.error('Failed to remove item')
+    }
+  }
+
+  return (
+    <div className="ap__list-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p className="ap__list-name">{tier.label} — Included Items</p>
+        <button onClick={onClose} className="ap__action-btn"><X size={13} /></button>
+      </div>
+
+      {specs.length === 0 && fetched && (
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem' }}>No items yet — add flooring, paint, fittings, etc.</p>
+      )}
+      {specs.map((s) => (
+        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+          <span><span style={{ color: '#5f7285' }}>{s.category_name}</span> — <span style={{ color: '#e8d5a3' }}>{s.item_label}</span></span>
+          <button onClick={() => removeSpec(s.id)} className="ap__action-btn ap__action-btn--danger"><Trash2 size={12} /></button>
+        </div>
+      ))}
+
+      <div className="ap__phone-row">
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="ap__form-input"
+          style={{ flex: 1 }}
+        >
+          <option value="">{categoriesFetched ? 'Select category' : 'Loading...'}</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <input
+          value={itemLabel}
+          onChange={(e) => setItemLabel(e.target.value)}
+          placeholder="Item (e.g. Vitrified tiles)"
+          className="ap__form-input"
+          style={{ flex: 1 }}
+        />
+        <button onClick={addSpec} disabled={saving} className="ap__btn-gold" style={{ padding: '0 0.9rem' }}>
+          <Plus size={14} />
+        </button>
+      </div>
+
+      <div className="ap__phone-row">
+        <input
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          placeholder="New category (e.g. Windows)"
+          className="ap__form-input"
+          style={{ flex: 1 }}
+        />
+        <button onClick={createCategory} disabled={addingCategory} className="ap__btn-cancel" style={{ flex: 'none', padding: '0 0.9rem' }}>
+          + Category
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
+// ── Cities & Rates ──────────────────────────────────────────────────────────
+function EstimatorCitiesPanel() {
+  const [cities, setCities] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [editCity, setEditCity] = useState(null)
+  const [form, setForm] = useState({ name: '', rate_per_sqft: '' })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchCities = async () => {
+    try {
+      const res = await api.get('/api/estimator/admin/cities/')
+      setCities(res.data)
+    } catch {
+      toast.error('Failed to load cities')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchCities() }, [])
+
+  const openAdd = () => { setForm({ name: '', rate_per_sqft: '' }); setEditCity(null); setShowModal(true) }
+  const openEdit = (c) => { setForm({ name: c.name, rate_per_sqft: c.rate_per_sqft }); setEditCity(c); setShowModal(true) }
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { toast.error('Enter a city name'); return }
+    if (!form.rate_per_sqft) { toast.error('Enter a rate per sq.ft'); return }
+    setLoading(true)
+    try {
+      if (editCity) {
+        const res = await api.patch(`/api/estimator/admin/cities/${editCity.id}/`, {
+          name: form.name.trim(), rate_per_sqft: Number(form.rate_per_sqft),
+        })
+        setCities((prev) => prev.map((c) => (c.id === editCity.id ? res.data : c)))
+        toast.success(`${form.name} updated`)
+      } else {
+        const res = await api.post('/api/estimator/admin/cities/', {
+          name: form.name.trim(), rate_per_sqft: Number(form.rate_per_sqft), is_active: true, order: cities.length,
+        })
+        setCities((prev) => [...prev, res.data])
+        toast.success(`${form.name} added`)
+      }
+      setShowModal(false)
+      setEditCity(null)
+    } catch (err) {
+      const msg = err.response?.data?.name?.[0]
+        || err.response?.data?.detail
+        || Object.values(err.response?.data || {})[0]?.[0]
+        || 'Failed to save city'
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateRate = async (city, newRate) => {
+    try {
+      const res = await api.patch(`/api/estimator/admin/cities/${city.id}/`, { rate_per_sqft: newRate })
+      setCities((prev) => prev.map((c) => (c.id === city.id ? res.data : c)))
+      toast.success(`${city.name} rate updated to ₹${newRate}/sq.ft`)
+    } catch {
+      toast.error('Failed to update rate')
+    }
+  }
+
+  const toggleActive = async (city) => {
+    try {
+      const res = await api.patch(`/api/estimator/admin/cities/${city.id}/`, { is_active: !city.is_active })
+      setCities((prev) => prev.map((c) => (c.id === city.id ? res.data : c)))
+    } catch {
+      toast.error('Failed to update city')
+    }
+  }
+
+  const doDelete = async (city) => {
+    try {
+      await api.delete(`/api/estimator/admin/cities/${city.id}/`)
+      setCities((prev) => prev.filter((c) => c.id !== city.id))
+      toast.success(`${city.name} removed`)
+    } catch {
+      toast.error('Failed to remove city')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  return (
+    <div className="ap__stack ap__stack--tight">
+      <div className="ap__toolbar">
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem', margin: 0, flex: 1 }}>
+          Click any rate to edit it inline. Changes apply to the public estimator immediately.
+        </p>
+        <button onClick={openAdd} className="ap__btn-gold"><MapPin size={14} /> Add City</button>
+      </div>
+
+      <div className="ap__list-grid">
+        {fetched && cities.length === 0 && (
+          <div className="ap__empty-card"><p>No cities yet. Click "Add City" to create one.</p></div>
+        )}
+        {cities.map((c, i) => (
+          <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="ap__list-card">
+            <div className="ap__list-icon-box"><MapPin size={16} color="#c9a84c" /></div>
+            <div className="ap__list-info">
+              <p className="ap__list-name">{c.name}</p>
+              <p className="ap__list-sub">Base construction rate</p>
+            </div>
+            <InlineNumber value={c.rate_per_sqft} suffix="/sq.ft" onSave={(v) => updateRate(c, v)} />
+            <div className="ap__row-actions">
+              <StatusBadge status={c.is_active ? 'Active' : 'Inactive'} />
+              <button onClick={() => openEdit(c)} className="ap__action-btn" title="Edit name"><Pencil size={13} /></button>
+              <button
+                onClick={() => toggleActive(c)}
+                className={c.is_active ? 'ap__deactivate-btn' : 'ap__approve-btn'}
+              >
+                {c.is_active ? 'Hide' : 'Show'}
+              </button>
+              <button onClick={() => setConfirmDelete(c)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !loading && setShowModal(false)} className="ap__modal-overlay" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="ap__modal-wrap">
+              <div className="ap__modal">
+                <button onClick={() => !loading && setShowModal(false)} className="ap__modal-close"><X size={16} /></button>
+                <h2 className="ap__modal-title">{editCity ? 'Edit City' : 'Add New City'}</h2>
+                <p className="ap__modal-sub">Sets the base ₹/sq.ft rate the whole estimate is calculated from</p>
+                <div className="ap__form-stack">
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">City Name *</label>
+                    <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Hyderabad" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Rate per sq.ft (₹) *</label>
+                    <input type="number" value={form.rate_per_sqft} onChange={(e) => setForm((p) => ({ ...p, rate_per_sqft: e.target.value }))} placeholder="e.g. 1800" className="ap__form-input" />
+                  </div>
+                  <div className="ap__modal-actions">
+                    <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
+                    <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
+                      {loading ? <><div className="ap__spinner" />Saving...</> : editCity ? <><Pencil size={14} />Save Changes</> : <><Plus size={14} />Add City</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete "${confirmDelete?.name}"?`}
+        message="This removes it from the estimator. Existing estimates already given to customers aren't affected."
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ── Quality Tiers ────────────────────────────────────────────────────────────
+function EstimatorTiersPanel() {
+  const [tiers, setTiers] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [editTier, setEditTier] = useState(null)
+  const [form, setForm] = useState({ key: '', label: '', multiplier: '', description: '' })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [expandedTier, setExpandedTier] = useState(null)
+
+  const fetchTiers = async () => {
+    try {
+      const res = await api.get('/api/estimator/admin/quality-tiers/')
+      setTiers(res.data)
+    } catch {
+      toast.error('Failed to load quality tiers')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchTiers() }, [])
+
+  const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+
+  const openAdd = () => { setForm({ key: '', label: '', multiplier: '', description: '' }); setEditTier(null); setShowModal(true) }
+  const openEdit = (t) => { setForm({ key: t.key, label: t.label, multiplier: t.multiplier, description: t.description }); setEditTier(t); setShowModal(true) }
+
+  const handleSubmit = async () => {
+    if (!form.label.trim()) { toast.error('Enter a tier name'); return }
+    if (!form.multiplier) { toast.error('Enter a multiplier'); return }
+    const multiplierNum = Number(form.multiplier)
+    if (isNaN(multiplierNum) || multiplierNum <= 0 || multiplierNum > 5) {
+      toast.error('Multiplier should be between 0 and 5 (e.g. 1.30)')
+      return
+    }
+    setLoading(true)
+    try {
+      const payload = { label: form.label.trim(), multiplier: Number(form.multiplier), description: form.description.trim() }
+      if (editTier) {
+        const res = await api.patch(`/api/estimator/admin/quality-tiers/${editTier.id}/`, payload)
+        setTiers((prev) => prev.map((t) => (t.id === editTier.id ? res.data : t)))
+        toast.success(`${form.label} updated`)
+      } else {
+        const res = await api.post('/api/estimator/admin/quality-tiers/', { ...payload, key: slugify(form.label), is_active: true, order: tiers.length })
+        setTiers((prev) => [...prev, res.data])
+        toast.success(`${form.label} added — open it in Django admin to set included items (flooring, paint, etc.)`)
+      }
+      setShowModal(false)
+      setEditTier(null)
+    } catch (err) {
+      toast.error(err.response?.data?.key?.[0] || err.response?.data?.detail || 'Failed to save tier')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const doDelete = async (tier) => {
+    try {
+      await api.delete(`/api/estimator/admin/quality-tiers/${tier.id}/`)
+      setTiers((prev) => prev.filter((t) => t.id !== tier.id))
+      toast.success(`${tier.label} removed`)
+    } catch {
+      toast.error('Failed to remove tier')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  return (
+    <div className="ap__stack ap__stack--tight">
+      <div className="ap__toolbar">
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem', margin: 0, flex: 1 }}>
+          Multiplier is applied on top of the city's base rate (1.30 = 30% more expensive). Included items per tier (flooring, paint...) are still managed in Django admin.
+        </p>
+        <button onClick={openAdd} className="ap__btn-gold"><Plus size={14} /> Add Tier</button>
+      </div>
+
+      <div className="ap__list-grid">
+        {fetched && tiers.length === 0 && <div className="ap__empty-card"><p>No quality tiers yet.</p></div>}
+        {tiers.map((t) => (
+          <div key={t.id}>
+            <div className="ap__list-card">
+              <div className="ap__list-info">
+                <p className="ap__list-name">{t.label} <span style={{ color: '#c9a84c' }}>×{t.multiplier}</span></p>
+                <p className="ap__list-sub">{t.description || 'No description'}</p>
+              </div>
+              <div className="ap__row-actions">
+                <button
+                  onClick={() => setExpandedTier(expandedTier === t.id ? null : t.id)}
+                  className="ap__approve-btn"
+                >
+                  {expandedTier === t.id ? 'Hide Items' : 'Manage Items'}
+                </button>
+                <button onClick={() => openEdit(t)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
+                <button onClick={() => setConfirmDelete(t)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+              </div>
+            </div>
+            {expandedTier === t.id && (
+              <TierSpecsEditor tier={t} onClose={() => setExpandedTier(null)} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !loading && setShowModal(false)} className="ap__modal-overlay" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="ap__modal-wrap">
+              <div className="ap__modal">
+                <button onClick={() => !loading && setShowModal(false)} className="ap__modal-close"><X size={16} /></button>
+                <h2 className="ap__modal-title">{editTier ? 'Edit Quality Tier' : 'Add Quality Tier'}</h2>
+                <div className="ap__form-stack">
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Tier Name *</label>
+                    <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Premium" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Multiplier *</label>
+                    <input type="number" step="0.01" value={form.multiplier} onChange={(e) => setForm((p) => ({ ...p, multiplier: e.target.value }))} placeholder="e.g. 1.30" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Description</label>
+                    <input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="e.g. Designer finish, modular interiors" className="ap__form-input" />
+                  </div>
+                  <div className="ap__modal-actions">
+                    <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
+                    <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
+                      {loading ? <><div className="ap__spinner" />Saving...</> : editTier ? <><Pencil size={14} />Save Changes</> : <><Plus size={14} />Add Tier</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete "${confirmDelete?.label}"?`}
+        message="Any tier spec items (flooring/paint/etc.) under this tier are deleted too."
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ── Add-ons ───────────────────────────────────────────────────────────────────
+function EstimatorAddOnsPanel() {
+  const [addOns, setAddOns] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [editAddOn, setEditAddOn] = useState(null)
+  const [form, setForm] = useState({ label: '', pricingMode: 'flat', cost: '', cost_per_sqft: '', icon: 'sparkles' })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchAddOns = async () => {
+    try {
+      const res = await api.get('/api/estimator/admin/add-ons/')
+      setAddOns(res.data)
+    } catch {
+      toast.error('Failed to load add-ons')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchAddOns() }, [])
+
+  const openAdd = () => { setForm({ label: '', pricingMode: 'flat', cost: '', cost_per_sqft: '', icon: 'sparkles' }); setEditAddOn(null); setShowModal(true) }
+  const openEdit = (a) => {
+    setForm({
+      label: a.label,
+      pricingMode: a.cost_per_sqft ? 'per_sqft' : 'flat',
+      cost: a.cost || '',
+      cost_per_sqft: a.cost_per_sqft || '',
+      icon: a.icon,
+    })
+    setEditAddOn(a)
+    setShowModal(true)
+  }
+
+  const handleSubmit = async () => {
+    if (!form.label.trim()) { toast.error('Enter an add-on name'); return }
+    const usingFlat = form.pricingMode === 'flat'
+    if (usingFlat && !form.cost) { toast.error('Enter a flat cost'); return }
+    if (!usingFlat && !form.cost_per_sqft) { toast.error('Enter a cost per sq.ft'); return }
+
+    setLoading(true)
+    try {
+      const payload = {
+        label: form.label.trim(),
+        icon: form.icon,
+        cost: usingFlat ? Number(form.cost) : null,
+        cost_per_sqft: usingFlat ? null : Number(form.cost_per_sqft),
+      }
+      if (editAddOn) {
+        const res = await api.patch(`/api/estimator/admin/add-ons/${editAddOn.id}/`, payload)
+        setAddOns((prev) => prev.map((a) => (a.id === editAddOn.id ? res.data : a)))
+        toast.success(`${form.label} updated`)
+      } else {
+        const res = await api.post('/api/estimator/admin/add-ons/', { ...payload, is_active: true, order: addOns.length })
+        setAddOns((prev) => [...prev, res.data])
+        toast.success(`${form.label} added`)
+      }
+      setShowModal(false)
+      setEditAddOn(null)
+    } catch (err) {
+      toast.error(err.response?.data?.non_field_errors?.[0] || err.response?.data?.detail || 'Failed to save add-on')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const doDelete = async (addOn) => {
+    try {
+      await api.delete(`/api/estimator/admin/add-ons/${addOn.id}/`)
+      setAddOns((prev) => prev.filter((a) => a.id !== addOn.id))
+      toast.success(`${addOn.label} removed`)
+    } catch {
+      toast.error('Failed to remove add-on')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  return (
+    <div className="ap__stack ap__stack--tight">
+      <div className="ap__toolbar">
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem', margin: 0, flex: 1 }}>
+          Flat cost = fixed ₹ regardless of plot size. Cost per sq.ft scales with the project.
+        </p>
+        <button onClick={openAdd} className="ap__btn-gold"><Plus size={14} /> Add Add-on</button>
+      </div>
+
+      <div className="ap__list-grid">
+        {fetched && addOns.length === 0 && <div className="ap__empty-card"><p>No add-ons yet.</p></div>}
+        {addOns.map((a) => (
+          <div key={a.id} className="ap__list-card">
+            <div className="ap__list-info">
+              <p className="ap__list-name">{a.label}</p>
+              <p className="ap__list-sub">
+                {a.cost_per_sqft ? `₹${a.cost_per_sqft}/sq.ft` : `₹${Number(a.cost).toLocaleString('en-IN')} flat`}
+              </p>
+            </div>
+            <div className="ap__row-actions">
+              <button onClick={() => openEdit(a)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
+              <button onClick={() => setConfirmDelete(a)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !loading && setShowModal(false)} className="ap__modal-overlay" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="ap__modal-wrap">
+              <div className="ap__modal">
+                <button onClick={() => !loading && setShowModal(false)} className="ap__modal-close"><X size={16} /></button>
+                <h2 className="ap__modal-title">{editAddOn ? 'Edit Add-on' : 'Add New Add-on'}</h2>
+                <div className="ap__form-stack">
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Add-on Name *</label>
+                    <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Swimming Pool" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Pricing Type</label>
+                    <select value={form.pricingMode} onChange={(e) => setForm((p) => ({ ...p, pricingMode: e.target.value }))} className="ap__form-input">
+                      <option value="flat">Flat cost (₹)</option>
+                      <option value="per_sqft">Cost per sq.ft (₹)</option>
+                    </select>
+                  </div>
+                  {form.pricingMode === 'flat' ? (
+                    <div className="ap__form-group">
+                      <label className="ap__form-label">Flat Cost (₹) *</label>
+                      <input type="number" value={form.cost} onChange={(e) => setForm((p) => ({ ...p, cost: e.target.value }))} placeholder="e.g. 800000" className="ap__form-input" />
+                    </div>
+                  ) : (
+                    <div className="ap__form-group">
+                      <label className="ap__form-label">Cost per sq.ft (₹) *</label>
+                      <input type="number" value={form.cost_per_sqft} onChange={(e) => setForm((p) => ({ ...p, cost_per_sqft: e.target.value }))} placeholder="e.g. 350" className="ap__form-input" />
+                    </div>
+                  )}
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Icon</label>
+                    <select value={form.icon} onChange={(e) => setForm((p) => ({ ...p, icon: e.target.value }))} className="ap__form-input">
+                      <option value="wrench">Wrench</option>
+                      <option value="sparkles">Sparkles</option>
+                    </select>
+                  </div>
+                  <div className="ap__modal-actions">
+                    <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
+                    <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
+                      {loading ? <><div className="ap__spinner" />Saving...</> : editAddOn ? <><Pencil size={14} />Save Changes</> : <><Plus size={14} />Add</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete "${confirmDelete?.label}"?`}
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ── Construction Types ────────────────────────────────────────────────────────
+function EstimatorTypesPanel() {
+  const [types, setTypes] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [editType, setEditType] = useState(null)
+  const [form, setForm] = useState({ label: '', adjustment_factor: '', icon: 'building' })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchTypes = async () => {
+    try {
+      const res = await api.get('/api/estimator/admin/construction-types/')
+      setTypes(res.data)
+    } catch {
+      toast.error('Failed to load construction types')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchTypes() }, [])
+
+  const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+
+  const openAdd = () => { setForm({ label: '', adjustment_factor: '', icon: 'building' }); setEditType(null); setShowModal(true) }
+  const openEdit = (t) => { setForm({ label: t.label, adjustment_factor: t.adjustment_factor, icon: t.icon }); setEditType(t); setShowModal(true) }
+
+  const handleSubmit = async () => {
+    if (!form.label.trim()) { toast.error('Enter a type name'); return }
+    if (!form.adjustment_factor) { toast.error('Enter an adjustment factor'); return }
+    const factorNum = Number(form.adjustment_factor)
+    if (isNaN(factorNum) || factorNum <= 0 || factorNum > 5) {
+      toast.error('Adjustment factor should be between 0 and 5 (e.g. 1.15)')
+      return
+    }
+    setLoading(true)
+    try {
+      const payload = { label: form.label.trim(), adjustment_factor: Number(form.adjustment_factor), icon: form.icon }
+      if (editType) {
+        const res = await api.patch(`/api/estimator/admin/construction-types/${editType.id}/`, payload)
+        setTypes((prev) => prev.map((t) => (t.id === editType.id ? res.data : t)))
+        toast.success(`${form.label} updated`)
+      } else {
+        const res = await api.post('/api/estimator/admin/construction-types/', { ...payload, key: slugify(form.label), is_active: true, order: types.length })
+        setTypes((prev) => [...prev, res.data])
+        toast.success(`${form.label} added`)
+      }
+      setShowModal(false)
+      setEditType(null)
+    } catch (err) {
+      toast.error(err.response?.data?.key?.[0] || err.response?.data?.detail || 'Failed to save type')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const doDelete = async (t) => {
+    try {
+      await api.delete(`/api/estimator/admin/construction-types/${t.id}/`)
+      setTypes((prev) => prev.filter((x) => x.id !== t.id))
+      toast.success(`${t.label} removed`)
+    } catch {
+      toast.error('Failed to remove type')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  return (
+    <div className="ap__stack ap__stack--tight">
+      <div className="ap__toolbar">
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem', margin: 0, flex: 1 }}>
+          Adjustment factor: 1.00 = no change, 1.15 = 15% more expensive than standard residential.
+        </p>
+        <button onClick={openAdd} className="ap__btn-gold"><Plus size={14} /> Add Type</button>
+      </div>
+
+      <div className="ap__list-grid">
+        {fetched && types.length === 0 && <div className="ap__empty-card"><p>No construction types yet.</p></div>}
+        {types.map((t) => (
+          <div key={t.id} className="ap__list-card">
+            <div className="ap__list-info">
+              <p className="ap__list-name">{t.label} <span style={{ color: '#c9a84c' }}>×{t.adjustment_factor}</span></p>
+            </div>
+            <div className="ap__row-actions">
+              <button onClick={() => openEdit(t)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
+              <button onClick={() => setConfirmDelete(t)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !loading && setShowModal(false)} className="ap__modal-overlay" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="ap__modal-wrap">
+              <div className="ap__modal">
+                <button onClick={() => !loading && setShowModal(false)} className="ap__modal-close"><X size={16} /></button>
+                <h2 className="ap__modal-title">{editType ? 'Edit Construction Type' : 'Add Construction Type'}</h2>
+                <div className="ap__form-stack">
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Type Name *</label>
+                    <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Villa" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Adjustment Factor *</label>
+                    <input type="number" step="0.01" value={form.adjustment_factor} onChange={(e) => setForm((p) => ({ ...p, adjustment_factor: e.target.value }))} placeholder="e.g. 1.15" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Icon</label>
+                    <select value={form.icon} onChange={(e) => setForm((p) => ({ ...p, icon: e.target.value }))} className="ap__form-input">
+                      <option value="home">Home</option>
+                      <option value="building">Building</option>
+                      <option value="layers">Layers</option>
+                    </select>
+                  </div>
+                  <div className="ap__modal-actions">
+                    <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
+                    <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
+                      {loading ? <><div className="ap__spinner" />Saving...</> : editType ? <><Pencil size={14} />Save Changes</> : <><Plus size={14} />Add</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete "${confirmDelete?.label}"?`}
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ── Floor Options ─────────────────────────────────────────────────────────
+function EstimatorFloorsPanel() {
+  const [floorOptions, setFloorOptions] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [editFloor, setEditFloor] = useState(null)
+  const [form, setForm] = useState({ label: '', floor_count: '', multiplier: '' })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchFloorOptions = async () => {
+    try {
+      const res = await api.get('/api/estimator/admin/floor-options/')
+      setFloorOptions(res.data)
+    } catch {
+      toast.error('Failed to load floor options')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchFloorOptions() }, [])
+
+  const openAdd = () => { setForm({ label: '', floor_count: '', multiplier: '' }); setEditFloor(null); setShowModal(true) }
+  const openEdit = (f) => { setForm({ label: f.label, floor_count: f.floor_count, multiplier: f.multiplier }); setEditFloor(f); setShowModal(true) }
+
+  const handleSubmit = async () => {
+    if (!form.label.trim()) { toast.error('Enter a label'); return }
+    if (!form.floor_count) { toast.error('Enter a floor count'); return }
+    if (!form.multiplier) { toast.error('Enter a multiplier'); return }
+    const multiplierNum = Number(form.multiplier)
+    if (isNaN(multiplierNum) || multiplierNum <= 0 || multiplierNum > 5) {
+      toast.error('Multiplier should be between 0 and 5 (e.g. 1.82)')
+      return
+    }
+    setLoading(true)
+    try {
+      const payload = {
+        label: form.label.trim(),
+        floor_count: Number(form.floor_count),
+        multiplier: Number(form.multiplier),
+      }
+      if (editFloor) {
+        const res = await api.patch(`/api/estimator/admin/floor-options/${editFloor.id}/`, payload)
+        setFloorOptions((prev) => prev.map((f) => (f.id === editFloor.id ? res.data : f)))
+        toast.success(`${form.label} updated`)
+      } else {
+        const res = await api.post('/api/estimator/admin/floor-options/', { ...payload, is_active: true, order: floorOptions.length })
+        setFloorOptions((prev) => [...prev, res.data])
+        toast.success(`${form.label} added`)
+      }
+      setShowModal(false)
+      setEditFloor(null)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save floor option')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const doDelete = async (f) => {
+    try {
+      await api.delete(`/api/estimator/admin/floor-options/${f.id}/`)
+      setFloorOptions((prev) => prev.filter((x) => x.id !== f.id))
+      toast.success(`${f.label} removed`)
+    } catch {
+      toast.error('Failed to remove floor option')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  return (
+    <div className="ap__stack ap__stack--tight">
+      <div className="ap__toolbar">
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem', margin: 0, flex: 1 }}>
+          Multiplier is applied on top of city + tier cost. Floor count feeds the timeline formula too.
+        </p>
+        <button onClick={openAdd} className="ap__btn-gold"><Plus size={14} /> Add Floor Option</button>
+      </div>
+
+      <div className="ap__list-grid">
+        {fetched && floorOptions.length === 0 && <div className="ap__empty-card"><p>No floor options yet.</p></div>}
+        {floorOptions.map((f) => (
+          <div key={f.id} className="ap__list-card">
+            <div className="ap__list-info">
+              <p className="ap__list-name">{f.label} <span style={{ color: '#c9a84c' }}>×{f.multiplier}</span></p>
+              <p className="ap__list-sub">Floor count: {f.floor_count}</p>
+            </div>
+            <div className="ap__row-actions">
+              <button onClick={() => openEdit(f)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
+              <button onClick={() => setConfirmDelete(f)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !loading && setShowModal(false)} className="ap__modal-overlay" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="ap__modal-wrap">
+              <div className="ap__modal">
+                <button onClick={() => !loading && setShowModal(false)} className="ap__modal-close"><X size={16} /></button>
+                <h2 className="ap__modal-title">{editFloor ? 'Edit Floor Option' : 'Add Floor Option'}</h2>
+                <div className="ap__form-stack">
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Label *</label>
+                    <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. G+1" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Floor Count *</label>
+                    <input type="number" value={form.floor_count} onChange={(e) => setForm((p) => ({ ...p, floor_count: e.target.value }))} placeholder="e.g. 2" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Multiplier *</label>
+                    <input type="number" step="0.01" value={form.multiplier} onChange={(e) => setForm((p) => ({ ...p, multiplier: e.target.value }))} placeholder="e.g. 1.82" className="ap__form-input" />
+                  </div>
+                  <div className="ap__modal-actions">
+                    <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
+                    <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
+                      {loading ? <><div className="ap__spinner" />Saving...</> : editFloor ? <><Pencil size={14} />Save Changes</> : <><Plus size={14} />Add</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete "${confirmDelete?.label}"?`}
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ── Wrapper with sub-tab pills ────────────────────────────────────────────────
+function EstimatorConfigTab() {
+  const [subTab, setSubTab] = useState('cities')
+
+  const PANELS = {
+    cities: <EstimatorCitiesPanel />,
+    tiers: <EstimatorTiersPanel />,
+    addons: <EstimatorAddOnsPanel />,
+    types: <EstimatorTypesPanel />,
+    floors: <EstimatorFloorsPanel />,
+  }
+
+  return (
+    <div className="ap__stack">
+      <div className="ap__filter-pills">
+        {EST_SUBTABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className="ap__filter-pill"
+            style={subTab === t.id ? { borderColor: 'rgba(201,168,76,0.4)', color: '#c9a84c' } : undefined}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {PANELS[subTab]}
+    </div>
+  )
+}
+
 // ── Analytics Tab ─────────────────────────────────────────────────────────────
 function AnalyticsTab() {
   const [data, setData] = useState(null)
@@ -2389,6 +3379,7 @@ export default function AdminPanel() {
     clients: <ClientsTab />,
     contractors: <ContractorsTab />,
     inquiries: <InquiriesTab />,
+    estimator: <EstimatorConfigTab />,
     analytics: <AnalyticsTab />,
     settings: <SettingsTab />,
   }

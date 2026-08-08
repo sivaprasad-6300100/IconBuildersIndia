@@ -457,7 +457,7 @@ export default function LoginPage() {
               <span className="lgn__logo-letter">R</span>
             </div>
             <div className="lgn__brand">
-              <span className="lgn__brand-cream">RELIA</span><span className="lgn__brand-gold">STATE</span>
+              <span className="lgn__brand-cream">ICON</span><span className="lgn__brand-gold">BUILDERS</span>
             </div>
             <div className="lgn__brand-sub">Secure Login</div>
           </div>
