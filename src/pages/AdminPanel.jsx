@@ -1684,9 +1684,18 @@ function PortfolioTab() {
 
   const handleCoverChange = (e) => {
     const file = e.target.files[0]
+    if (!file) return
+
+    const MAX_MB = 5
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`Cover image is too large. Max size is ${MAX_MB}MB — this file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`)
+      e.target.value = ''
+      return
+    }
     if (coverPreview) URL.revokeObjectURL(coverPreview)
     setForm((p) => ({ ...p, cover_image: file || null }))
     setCoverPreview(file ? URL.createObjectURL(file) : null)
+    e.target.value = ''   // ADD THIS — allows re-selecting the same file later
   }
 
   const handleSubmitPortfolio = async () => {
@@ -1747,6 +1756,13 @@ function PortfolioTab() {
   const selectGalleryFiles = (e, project) => {
     const files = e.target.files
     if (!files || files.length === 0) return
+    const MAX_MB = 5
+    const oversized = Array.from(files).filter((f) => f.size > MAX_MB * 1024 * 1024)
+    if (oversized.length > 0) {
+      toast.error(`${oversized.length} photo(s) exceed the ${MAX_MB}MB limit. Please resize and try again.`)
+      e.target.value = ''
+      return
+    }
     setPendingTarget(project.id)
     setPendingFiles(files)
     setGalleryPreview(Array.from(files).slice(0, 5).map((f) => URL.createObjectURL(f)))
@@ -2649,8 +2665,10 @@ function EstimatorTiersPanel() {
                     <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Premium" className="ap__form-input" />
                   </div>
                   <div className="ap__form-group">
-                    <label className="ap__form-label">Multiplier *</label>
-                    <input type="number" step="0.01" value={form.multiplier} onChange={(e) => setForm((p) => ({ ...p, multiplier: e.target.value }))} placeholder="e.g. 1.30" className="ap__form-input" />
+                    <label className="ap__form-label">
+                      Multiplier * <span style={{ color: '#5f7285', fontWeight: 400, textTransform: 'none' }}>(1.00 = same price as Basic, 1.30 = 30% more expensive)</span>
+                    </label>
+                    <input type="number" step="0.01" value={form.multiplier} onChange={(e) => setForm((p) => ({ ...p, multiplier: e.target.value }))} placeholder="e.g. 1.30 for 30% pricier" className="ap__form-input" />
                   </div>
                   <div className="ap__form-group">
                     <label className="ap__form-label">Description</label>
@@ -2953,8 +2971,10 @@ function EstimatorTypesPanel() {
                     <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Villa" className="ap__form-input" />
                   </div>
                   <div className="ap__form-group">
-                    <label className="ap__form-label">Adjustment Factor *</label>
-                    <input type="number" step="0.01" value={form.adjustment_factor} onChange={(e) => setForm((p) => ({ ...p, adjustment_factor: e.target.value }))} placeholder="e.g. 1.15" className="ap__form-input" />
+                    <label className="ap__form-label">
+                      Adjustment Factor * <span style={{ color: '#5f7285', fontWeight: 400, textTransform: 'none' }}>(1.00 = no change, 1.15 = 15% more expensive)</span>
+                    </label>
+                    <input type="number" step="0.01" value={form.adjustment_factor} onChange={(e) => setForm((p) => ({ ...p, adjustment_factor: e.target.value }))} placeholder="e.g. 1.15 for 15% pricier" className="ap__form-input" />
                   </div>
                   <div className="ap__form-group">
                     <label className="ap__form-label">Icon</label>
@@ -3101,9 +3121,11 @@ function EstimatorFloorsPanel() {
                     <input type="number" value={form.floor_count} onChange={(e) => setForm((p) => ({ ...p, floor_count: e.target.value }))} placeholder="e.g. 2" className="ap__form-input" />
                   </div>
                   <div className="ap__form-group">
-                    <label className="ap__form-label">Multiplier *</label>
-                    <input type="number" step="0.01" value={form.multiplier} onChange={(e) => setForm((p) => ({ ...p, multiplier: e.target.value }))} placeholder="e.g. 1.82" className="ap__form-input" />
-                  </div>
+                    <label className="ap__form-label">
+                      Multiplier * <span style={{ color: '#5f7285', fontWeight: 400, textTransform: 'none' }}>(1.00 = ground floor only, 1.82 = 82% more for this many floors)</span>
+                    </label>
+                    <input type="number" step="0.01" value={form.multiplier} onChange={(e) => setForm((p) => ({ ...p, multiplier: e.target.value }))} placeholder="e.g. 1.82 for G+1" className="ap__form-input" />
+                  </div>                  
                   <div className="ap__modal-actions">
                     <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
                     <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
