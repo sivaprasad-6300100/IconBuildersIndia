@@ -112,9 +112,9 @@ export default function CategoryPage() {
         .cat__sub { color: #8fa3b8; font-size: 0.9rem; }
         .cat__grid {
           max-width: 1280px; margin: 0 auto;
-          display: grid; grid-template-columns: 1fr; gap: 1.25rem;
+          display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;
         }
-        @media (min-width: 640px)  { .cat__grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 640px)  { .cat__grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; } }
         @media (min-width: 1024px) { .cat__grid { grid-template-columns: repeat(3, 1fr); } }
 
         .cat__card {
