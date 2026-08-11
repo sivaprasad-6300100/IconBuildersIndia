@@ -10,6 +10,7 @@ const CATEGORY_LABELS = {
   'row-house': 'Row House',
    plot: 'Plot',
   commercial: 'Commercial',
+  'real-images': 'Real Images',
 }
 
 const STATUS_COLORS = {

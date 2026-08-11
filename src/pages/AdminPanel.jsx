@@ -389,7 +389,11 @@ function ProjectsTab() {
       setEditProject(null)
       resetForm()
     } catch (err) {
-      toast.error(err.response?.data?.detail || `Failed to ${editProject ? 'update' : 'create'} project`)
+      const data = err.response?.data
+      const firstError = data?.detail
+        || (data && Object.values(data)[0]?.[0])
+        || `Failed to ${editProject ? 'update' : 'create'} project`
+      toast.error(firstError)
     } finally {
       setLoading(false)
     }
@@ -1726,7 +1730,11 @@ function PortfolioTab() {
       setEditItem(null)
       resetForm()
     } catch (err) {
-      toast.error(err.response?.data?.detail || `Failed to ${editItem ? 'update' : 'create'} project`)
+      const data = err.response?.data
+      const firstError = data?.detail
+        || (data && Object.values(data)[0]?.[0])
+        || `Failed to ${editItem ? 'update' : 'create'} project`
+      toast.error(firstError)
     } finally {
       setLoading(false)
     }
@@ -1900,7 +1908,8 @@ function PortfolioTab() {
                       <option value="Apartment">Apartment</option>
                       <option value="Row House">Row House</option>
                       <option value="Plot">Plot</option>
-                      <option value="Commercial">Commercial</option>
+                      <option value="Commercial">Commercial</option>  
+                      <option value="Real Images">Real Images</option>
                     </select>
                   </div>
 

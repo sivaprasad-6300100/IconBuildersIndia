@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, ArrowUpRight, LayoutGrid } from 'lucide-react'
 import { API_BASE } from '../../services/api'
 
-const CATEGORY_ORDER = ['Villa', 'Apartment', 'Row House', 'Plot', 'Commercial']
+const CATEGORY_ORDER = ['Villa', 'Apartment', 'Row House', 'Plot', 'Commercial', 'Real Images']
 
 
 const STATUS_COLORS = {
