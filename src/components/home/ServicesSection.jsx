@@ -138,7 +138,7 @@ export default function ServicesSection() {
           // backdrop-filter: blur(1px);
           // -webkit-backdrop-filter: blur(1px);
           background: rgba(13, 24, 38, 0.55);
-          backdrop-filter: blur(2px);
+          backdrop-filter: blur(3px);
           -webkit-backdrop-filter: blur(2px);
           padding: 6rem 1.5rem;
         }

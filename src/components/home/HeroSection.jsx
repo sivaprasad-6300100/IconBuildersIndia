@@ -87,8 +87,8 @@ export default function HeroSection() {
         }
 
         .hero__subtitle {
-          color: #5a7a9a;
-          font-size: 0.875rem;
+          color: #e8f2fc;
+          font-size: 0.975rem;
           max-width: 36rem;
           margin-top: 1rem;
         }

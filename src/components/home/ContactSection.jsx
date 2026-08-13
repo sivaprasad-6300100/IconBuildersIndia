@@ -77,7 +77,7 @@ export default function ContactSection() {
           position: relative;
           overflow: hidden;
           background: rgba(13, 24, 38, 0.55);
-          backdrop-filter: blur(2px);
+          backdrop-filter: blur(3px);
           -webkit-backdrop-filter: blur(2px);
           padding: 6rem 1.5rem;
         }
@@ -132,7 +132,7 @@ export default function ContactSection() {
         @media (min-width: 640px)  { .cont__heading { font-size: 2.75rem; } }
         @media (min-width: 1024px) { .cont__heading { font-size: 3.25rem; } }
         .cont__subtitle {
-          color: #8fa3b8;
+          color: #e4ecf5;
           font-size: 1rem;
           max-width: 42rem;
           margin: 0 auto;
@@ -455,7 +455,7 @@ export default function ContactSection() {
             ))}
 
             <a
-              href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '919876543210'}`}
+              href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '9035624465'}`}
               target="_blank"
               rel="noopener noreferrer"
               className="cont__whatsapp"
@@ -466,7 +466,7 @@ export default function ContactSection() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 40 }}proj__subtitle
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}

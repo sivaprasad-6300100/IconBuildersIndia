@@ -14,10 +14,10 @@ const CONTACT_LINES = [
 ]
 
 const SOCIALS = [
-  [Instagram, 'Instagram'],
-  [Youtube, 'YouTube'],
-  [Linkedin, 'LinkedIn'],
-  [Twitter, 'Twitter'],
+  [Instagram, 'Instagram', 'https://www.instagram.com/balusunil2/'],
+  [Youtube, 'YouTube', 'https://www.youtube.com/@iconbuildersindia'],
+  [Linkedin, 'LinkedIn', 'https://www.linkedin.com/company/iconbuildersindia'],
+  [Twitter, 'Twitter', 'https://twitter.com/IconBuildersIndia'],
 ]
 
 export default function Footer() {
@@ -264,8 +264,15 @@ export default function Footer() {
             </div>
 
             <div className="ftr__socials">
-              {SOCIALS.map(([Icon, label]) => (
-                <a key={label} href="#" aria-label={label} className="ftr__social-btn">
+              {SOCIALS.map(([Icon, label, url]) => (
+                <a
+                  key={label}
+                  href={url}
+                  target={url !== '#' ? '_blank' : undefined}
+                  rel={url !== '#' ? 'noopener noreferrer' : undefined}
+                  aria-label={label}
+                  className="ftr__social-btn"
+                >
                   <Icon size={15} />
                 </a>
               ))}

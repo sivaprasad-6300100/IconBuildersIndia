@@ -156,7 +156,7 @@ export default function ProjectShowcase() {
           position: relative;
           overflow: hidden;
           background: rgba(13, 24, 38, 0.55);
-          backdrop-filter: blur(2px);
+          backdrop-filter: blur(3px);
           -webkit-backdrop-filter: blur(2px);
           padding: 6rem 1.5rem;
         }
@@ -198,7 +198,7 @@ export default function ProjectShowcase() {
         .proj__heading-accent { color: #c9a84c; }
         @media (min-width: 640px)  { .proj__heading { font-size: 2.75rem; } }
         @media (min-width: 1024px) { .proj__heading { font-size: 3.25rem; } }
-        .proj__subtitle { color: #8fa3b8; font-size: 1rem; max-width: 42rem; margin: 0 auto; line-height: 1.7; }
+        .proj__subtitle { color: #e4ecf5; font-size: 1rem; max-width: 42rem; margin: 0 auto; line-height: 1.7; }
 
         .proj__grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
         @media (min-width: 640px)  { .proj__grid { grid-template-columns: repeat(2, 1fr); } }

@@ -117,7 +117,7 @@ export default function HowItWorks() {
           position: relative;
           overflow: hidden;
           background: rgba(13, 24, 38, 0.55);
-          backdrop-filter: blur(2px);
+          backdrop-filter: blur(3px);
           -webkit-backdrop-filter: blur(2px);
           padding: 6rem 1.5rem;
         }
@@ -175,7 +175,7 @@ export default function HowItWorks() {
         @media (min-width: 640px)  { .hiw__heading { font-size: 2.75rem; } }
         @media (min-width: 1024px) { .hiw__heading { font-size: 3.25rem; } }
         .hiw__subtitle {
-          color: #8fa3b8;
+          color: #e2eaf3;
           font-size: 1rem;
           max-width: 42rem;
           margin: 0 auto;
@@ -356,7 +356,7 @@ export default function HowItWorks() {
           margin-top: 5rem;
         }
         .hiw__cta-text {
-          color: #8fa3b8;
+          color: #e1eaf3;
           font-size: 1rem;
           margin-bottom: 1.5rem;
         }
