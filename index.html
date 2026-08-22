@@ -38,44 +38,49 @@
     <meta name="twitter:image" content="https://www.iconbuildersindia.com/og-image.jpg" />
 
     <!-- ═══════════════════════════════════════════════
-         STRUCTURED DATA — RealEstateAgent + Founder
+         STRUCTURED DATA — Organization + Person (entity-linked)
 
-         IMPORTANT: fill "sameAs" below with your REAL profile
-         links (LinkedIn, Facebook, Google Business, Justdial,
-         IndiaMART, etc). An empty sameAs gives Google nothing
-         to cross-check the founder claim against — this is
-         the single biggest reason it isn't surfacing yet.
+         IMPORTANT: Replace every REAL_..._URL placeholder below
+         with your actual profile links before uploading. Leaving
+         placeholder text in sameAs is worse than an empty array —
+         delete any entry you don't actually have.
     ═══════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "RealEstateAgent",
-      "name": "IconBuilders",
-      "alternateName": "Icon Builders",
-      "url": "https://www.iconbuildersindia.com/",
-      "logo": "https://www.iconbuildersindia.com/favicon-32x32.png",
-      "image": "https://www.iconbuildersindia.com/og-image.jpg",
-      "description": "IconBuilders is a real estate and construction company founded by Sunil Balu, delivering villas, apartments, and commercial projects across Bangalore, Hyderabad, Vijayawada, and Nellore.",
-      "founder": {
-        "@type": "Person",
-        "name": "Sunil Balu",
-        "jobTitle": "Founder & Owner"
-      },
-      "areaServed": ["Bangalore", "Hyderabad", "Vijayawada", "Nellore"],
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Bangalore",
-        "addressRegion": "Karnataka",
-        "addressCountry": "IN"
-      },
-      "telephone": "+91-9035624465",
-      "sameAs": [
-        "https://www.linkedin.com/company/iconbuildersindia",
-        "https://www.facebook.com/iconbuildersindia",
-        "https://www.instagram.com/iconbuildersindia",
-        "https://www.google.com/maps/place/YOUR_GOOGLE_BUSINESS_PROFILE_LINK",
-        "https://www.justdial.com/YOUR_LISTING",
-        "https://www.indiamart.com/YOUR_LISTING"
+      "@graph": [
+        {
+          "@type": "RealEstateAgent",
+          "@id": "https://www.iconbuildersindia.com/#organization",
+          "name": "IconBuilders",
+          "alternateName": "Icon Builders",
+          "url": "https://www.iconbuildersindia.com/",
+          "logo": "https://www.iconbuildersindia.com/favicon-32x32.png",
+          "image": "https://www.iconbuildersindia.com/og-image.jpg",
+          "description": "IconBuilders is a real estate and construction company founded by Sunil Balu, delivering villas, apartments, and commercial projects across Bangalore, Hyderabad, Vijayawada, and Nellore.",
+          "founder": { "@id": "https://www.iconbuildersindia.com/#sunil-balu" },
+          "areaServed": ["Bangalore", "Hyderabad", "Vijayawada", "Nellore"],
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Bangalore",
+            "addressRegion": "Karnataka",
+            "addressCountry": "IN"
+          },
+          "telephone": "+91-9035624465",
+          "sameAs": [
+            "REAL_LINKEDIN_URL",
+            "REAL_FACEBOOK_URL",
+            "REAL_INSTAGRAM_URL",
+            "REAL_GOOGLE_BUSINESS_URL"
+          ]
+        },
+        {
+          "@type": "Person",
+          "@id": "https://www.iconbuildersindia.com/#sunil-balu",
+          "name": "Sunil Balu",
+          "jobTitle": "Founder & Owner",
+          "worksFor": { "@id": "https://www.iconbuildersindia.com/#organization" }
+        }
       ]
     }
     </script>
@@ -88,10 +93,9 @@
   <body>
     <!-- ═══════════════════════════════════════════════
          NOSCRIPT FALLBACK
-         This is REAL visible text that crawlers can read
-         even before your JS app loads. It should mirror
-         the key facts (including founder name) that live
-         in your React app's About section.
+         Real visible text crawlers can read even before
+         your JS app loads. Mirror this in your React
+         "About" section too — schema alone isn't enough.
     ═══════════════════════════════════════════════ -->
     <noscript>
       <h1>IconBuilders — Real Estate & Construction Company in Bangalore</h1>
