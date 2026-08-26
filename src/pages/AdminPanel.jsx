@@ -25,6 +25,7 @@ const NAV = [
   { id: 'clients',     label: 'Clients',     icon: Users },
   { id: 'contractors', label: 'Contractors', icon: HardHat },
   { id: 'inquiries',   label: 'Inquiries',   icon: MessageSquare },
+  { id: 'property-requests', label: 'Property Services', icon: MapPin },
   { id: 'estimator',   label: 'Estimator',   icon: Calculator },
   { id: 'analytics',   label: 'Analytics',   icon: BarChart3 },
   { id: 'settings',    label: 'Settings',    icon: Settings },
@@ -2195,6 +2196,447 @@ function InquiriesTab() {
   )
 }
 
+// ── Property Service Requests Tab ─────────────────────────────────────────────
+const PSR_STATUS_LABELS = {
+  new: 'New',
+  reviewed: 'Reviewed',
+  contacted: 'Contacted',
+  converted: 'Converted',
+  closed: 'Closed',
+}
+
+const PSR_SUBTABS = [
+  { id: 'requests', label: 'Requests' },
+  { id: 'pricing',  label: 'Service Types & Pricing' },
+]
+
+function PropertyRequestsTab() {
+  const [subTab, setSubTab] = useState('requests')
+  return (
+    <div className="ap__stack">
+      <div className="ap__filter-pills">
+        {PSR_SUBTABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className="ap__filter-pill"
+            style={subTab === t.id ? { borderColor: 'rgba(201,168,76,0.4)', color: '#c9a84c' } : undefined}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {subTab === 'requests' ? <PropertyRequestsList /> : <ServiceTypesPanel />}
+    </div>
+  )
+}
+
+function PropertyRequestsList() {
+  const [items, setItems] = useState([])
+  const [summary, setSummary] = useState({ total: 0, new: 0, reviewed: 0, contacted: 0, converted: 0, closed: 0 })
+  const [fetched, setFetched] = useState(false)
+  const [activeFilter, setActiveFilter] = useState('All')
+  const [updating, setUpdating] = useState(null)
+  const [page, setPage] = useState(1)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+
+  const fetchItems = async (statusFilter) => {
+    try {
+      const params = statusFilter && statusFilter !== 'All' ? `?status=${statusFilter}` : ''
+      const res = await api.get(`/api/service-requests/${params}`)
+      setItems(res.data.requests)
+      setSummary(res.data.summary)
+    } catch {
+      toast.error('Failed to load property service requests')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchItems() }, [])
+  useEffect(() => { setPage(1) }, [activeFilter])
+
+  const handleFilterClick = (label) => {
+    setActiveFilter(label)
+    setFetched(false)
+    const statusValue = label === 'All' ? null : label.toLowerCase()
+    fetchItems(statusValue)
+  }
+
+  const updateStatus = async (item, newStatus) => {
+    setUpdating(item.id)
+    try {
+      const res = await api.patch(`/api/service-requests/${item.id}/status/`, { status: newStatus })
+      setItems((prev) => prev.map((i) => (i.id === item.id ? res.data.request : i)))
+      setSummary((prev) => ({
+        ...prev,
+        [item.status]: Math.max(0, prev[item.status] - 1),
+        [newStatus]: (prev[newStatus] || 0) + 1,
+      }))
+      toast.success(`${item.name} marked as ${PSR_STATUS_LABELS[newStatus]}`)
+    } catch {
+      toast.error('Failed to update status')
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const doDelete = async (item) => {
+    try {
+      await api.delete(`/api/service-requests/${item.id}/`)
+      setItems((prev) => prev.filter((i) => i.id !== item.id))
+      setSummary((prev) => ({ ...prev, total: Math.max(0, prev.total - 1), [item.status]: Math.max(0, prev[item.status] - 1) }))
+      toast.success('Request deleted')
+    } catch {
+      toast.error('Failed to delete request')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const bulkDelete = async () => {
+    try {
+      const toDelete = items.filter((i) => selectedIds.has(i.id))
+      await Promise.all(toDelete.map((i) => api.delete(`/api/service-requests/${i.id}/`)))
+      setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)))
+      setSummary((prev) => {
+        const next = { ...prev, total: Math.max(0, prev.total - toDelete.length) }
+        toDelete.forEach((i) => { next[i.status] = Math.max(0, (next[i.status] || 0) - 1) })
+        return next
+      })
+      toast.success(`${toDelete.length} requests deleted`)
+      setSelectedIds(new Set())
+    } catch {
+      toast.error('Some deletions failed')
+    } finally {
+      setConfirmBulkDelete(false)
+    }
+  }
+
+  const paginated = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+    if (page > totalPages) setPage(totalPages)
+  }, [items.length])
+
+  return (
+    <div className="ap__stack">
+      <div className="ap__inquiry-header">
+        <h3 className="ap__section-title">Property Service Requests ({summary.total})</h3>
+        <div className="ap__filter-pills">
+          {['All', 'New', 'Reviewed', 'Contacted', 'Converted', 'Closed'].map((f) => (
+            <button
+              key={f}
+              onClick={() => handleFilterClick(f)}
+              className="ap__filter-pill"
+              style={activeFilter === f ? { borderColor: 'rgba(201,168,76,0.4)', color: '#c9a84c' } : undefined}
+            >
+              {f} {f !== 'All' && `(${summary[f.toLowerCase()] ?? 0})`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <BulkActionBar
+        count={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={<button onClick={() => setConfirmBulkDelete(true)} className="ap__deactivate-btn">Delete Selected</button>}
+      />
+
+      {fetched && items.length === 0 && (
+        <div className="ap__empty-card"><p>No property service requests in this view yet.</p></div>
+      )}
+
+      <div className="ap__stack ap__stack--tight">
+        {paginated.map((r, i) => (
+          <motion.div key={r.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="ap__inquiry-card">
+            <div className="ap__inquiry-left">
+              <input type="checkbox" checked={selectedIds.has(r.id)} onChange={() => toggleSelect(r.id)} className="ap__checkbox" style={{ marginTop: '0.3rem' }} />
+              <div className="ap__inquiry-avatar">{r.name[0].toUpperCase()}</div>
+              <div>
+                <p className="ap__list-name">{r.name}</p>
+                <p className="ap__list-sub">{r.phone}{r.address ? ` · ${r.address}` : ''}</p>
+                <div className="ap__inquiry-tags">
+                  <span className="ap__tag">{r.service_type_label}</span>
+                  {r.area_sqft && <span className="ap__tag">{r.area_sqft} sqft</span>}
+                  <span className="ap__tag" style={{ color: '#c9a84c' }}>₹{Number(r.estimated_price).toLocaleString('en-IN')}</span>
+                  <span className="ap__tag-muted">
+                    {new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+                {r.requirement_text && (
+                  <p className="ap__list-sub" style={{ marginTop: '0.35rem', maxWidth: '32rem' }}>{r.requirement_text}</p>
+                )}
+              </div>
+            </div>
+            <div className="ap__row-actions">
+              <select
+                value={r.status}
+                onChange={(e) => updateStatus(r, e.target.value)}
+                disabled={updating === r.id}
+                className="ap__filter-pill"
+                style={{ cursor: 'pointer', paddingRight: '0.5rem' }}
+              >
+                {Object.entries(PSR_STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              {r.latitude && r.longitude && (
+                <a
+                  href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="ap__action-btn"
+                  title="View on map"
+                >
+                  <MapPin size={13} />
+                </a>
+              )}
+              <a href={`tel:${r.phone}`} className="ap__call-btn">📞 Call</a>
+              <a href={`https://wa.me/91${r.phone.replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" className="ap__whatsapp-btn">WhatsApp</a>
+              <button onClick={() => setConfirmDelete(r)} className="ap__action-btn ap__action-btn--danger"><Trash2 size={13} /></button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <Pagination page={page} totalItems={items.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete request from "${confirmDelete?.name}"?`}
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        title={`Delete ${selectedIds.size} requests?`}
+        onConfirm={bulkDelete}
+        onCancel={() => setConfirmBulkDelete(false)}
+      />
+    </div>
+  )
+}
+
+// Admin-configurable service types — the prices customers see on the public
+// property-services page come directly from here.
+function ServiceTypesPanel() {
+  const [types, setTypes] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [editType, setEditType] = useState(null)
+  const [form, setForm] = useState({ label: '', description: '', pricing_mode: 'per_sqft', flat_price: '', price_per_sqft: '', icon: 'wall' })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const fetchTypes = async () => {
+    try {
+      const res = await api.get('/api/service-requests/admin/service-types/')
+      setTypes(res.data)
+    } catch {
+      toast.error('Failed to load service types')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchTypes() }, [])
+
+  const openAdd = () => {
+    setForm({ label: '', description: '', pricing_mode: 'per_sqft', flat_price: '', price_per_sqft: '', icon: 'wall' })
+    setEditType(null)
+    setShowModal(true)
+  }
+  const openEdit = (t) => {
+    setForm({
+      label: t.label, description: t.description || '', pricing_mode: t.pricing_mode,
+      flat_price: t.flat_price || '', price_per_sqft: t.price_per_sqft || '', icon: t.icon,
+    })
+    setEditType(t)
+    setShowModal(true)
+  }
+
+  const handleSubmit = async () => {
+    if (!form.label.trim()) { toast.error('Enter a service name'); return }
+    if (form.pricing_mode === 'flat' && !form.flat_price) { toast.error('Enter a flat price'); return }
+    if (form.pricing_mode === 'per_sqft' && !form.price_per_sqft) { toast.error('Enter a price per sq.ft'); return }
+    setLoading(true)
+    const payload = {
+      label: form.label.trim(),
+      description: form.description.trim(),
+      pricing_mode: form.pricing_mode,
+      flat_price: form.pricing_mode === 'flat' ? Number(form.flat_price) : null,
+      price_per_sqft: form.pricing_mode === 'per_sqft' ? Number(form.price_per_sqft) : null,
+      icon: form.icon,
+    }
+    try {
+      if (editType) {
+        const res = await api.patch(`/api/service-requests/admin/service-types/${editType.id}/`, payload)
+        setTypes((prev) => prev.map((t) => (t.id === editType.id ? res.data : t)))
+        toast.success(`${form.label} updated`)
+      } else {
+        const res = await api.post('/api/service-requests/admin/service-types/', {
+          ...payload,
+          key: form.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          is_active: true, order: types.length,
+        })
+        setTypes((prev) => [...prev, res.data])
+        toast.success(`${form.label} added`)
+      }
+      setShowModal(false)
+      setEditType(null)
+    } catch (err) {
+      const msg = err.response?.data?.detail
+        || Object.values(err.response?.data || {})[0]?.[0]
+        || 'Failed to save service type'
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateRate = async (t, field, newVal) => {
+    try {
+      const res = await api.patch(`/api/service-requests/admin/service-types/${t.id}/`, { [field]: newVal })
+      setTypes((prev) => prev.map((x) => (x.id === t.id ? res.data : x)))
+      toast.success(`${t.label} rate updated`)
+    } catch {
+      toast.error('Failed to update rate')
+    }
+  }
+
+  const toggleActive = async (t) => {
+    try {
+      const res = await api.patch(`/api/service-requests/admin/service-types/${t.id}/`, { is_active: !t.is_active })
+      setTypes((prev) => prev.map((x) => (x.id === t.id ? res.data : x)))
+    } catch {
+      toast.error('Failed to update service type')
+    }
+  }
+
+  const doDelete = async (t) => {
+    try {
+      await api.delete(`/api/service-requests/admin/service-types/${t.id}/`)
+      setTypes((prev) => prev.filter((x) => x.id !== t.id))
+      toast.success(`${t.label} removed`)
+    } catch {
+      toast.error('Failed to remove — it may already have requests against it')
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  return (
+    <div className="ap__stack ap__stack--tight">
+      <div className="ap__toolbar">
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem', margin: 0, flex: 1 }}>
+          Click a price to edit it inline. These prices power the live quote on the public "Property Services" page.
+        </p>
+        <button onClick={openAdd} className="ap__btn-gold"><Plus size={14} /> Add Service Type</button>
+      </div>
+
+      <div className="ap__list-grid">
+        {fetched && types.length === 0 && (
+          <div className="ap__empty-card"><p>No service types yet. Click "Add Service Type" to create one.</p></div>
+        )}
+        {types.map((t, i) => (
+          <motion.div key={t.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="ap__list-card">
+            <div className="ap__list-icon-box"><MapPin size={16} color="#c9a84c" /></div>
+            <div className="ap__list-info">
+              <p className="ap__list-name">{t.label}</p>
+              <p className="ap__list-sub">{t.description || (t.pricing_mode === 'flat' ? 'Flat price' : 'Price per sq.ft')}</p>
+            </div>
+            {t.pricing_mode === 'flat' ? (
+              <InlineNumber value={t.flat_price || 0} onSave={(v) => updateRate(t, 'flat_price', v)} />
+            ) : (
+              <InlineNumber value={t.price_per_sqft || 0} suffix="/sq.ft" onSave={(v) => updateRate(t, 'price_per_sqft', v)} />
+            )}
+            <div className="ap__row-actions">
+              <StatusBadge status={t.is_active ? 'Active' : 'Inactive'} />
+              <button onClick={() => openEdit(t)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
+              <button
+                onClick={() => toggleActive(t)}
+                className={t.is_active ? 'ap__deactivate-btn' : 'ap__approve-btn'}
+              >
+                {t.is_active ? 'Hide' : 'Show'}
+              </button>
+              <button onClick={() => setConfirmDelete(t)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !loading && setShowModal(false)} className="ap__modal-overlay" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="ap__modal-wrap">
+              <div className="ap__modal">
+                <button onClick={() => !loading && setShowModal(false)} className="ap__modal-close"><X size={16} /></button>
+                <h2 className="ap__modal-title">{editType ? 'Edit Service Type' : 'Add Service Type'}</h2>
+                <p className="ap__modal-sub">e.g. Compound Wall Cleaning, New Construction, Remodeling</p>
+                <div className="ap__form-stack">
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Service Name *</label>
+                    <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="e.g. Compound Wall Construction" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Short Description</label>
+                    <input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Shown under the option on the request form" className="ap__form-input" />
+                  </div>
+                  <div className="ap__form-group">
+                    <label className="ap__form-label">Pricing Mode *</label>
+                    <select
+                      value={form.pricing_mode}
+                      onChange={(e) => setForm((p) => ({ ...p, pricing_mode: e.target.value }))}
+                      className="ap__form-input"
+                    >
+                      <option value="per_sqft">Price per sq.ft (customer enters area)</option>
+                      <option value="flat">Flat price (fixed amount)</option>
+                    </select>
+                  </div>
+                  {form.pricing_mode === 'flat' ? (
+                    <div className="ap__form-group">
+                      <label className="ap__form-label">Flat Price (₹) *</label>
+                      <input type="number" value={form.flat_price} onChange={(e) => setForm((p) => ({ ...p, flat_price: e.target.value }))} placeholder="e.g. 5000" className="ap__form-input" />
+                    </div>
+                  ) : (
+                    <div className="ap__form-group">
+                      <label className="ap__form-label">Price per sq.ft (₹) *</label>
+                      <input type="number" value={form.price_per_sqft} onChange={(e) => setForm((p) => ({ ...p, price_per_sqft: e.target.value }))} placeholder="e.g. 1800" className="ap__form-input" />
+                    </div>
+                  )}
+                  <div className="ap__modal-actions">
+                    <button onClick={() => setShowModal(false)} disabled={loading} className="ap__btn-cancel">Cancel</button>
+                    <button onClick={handleSubmit} disabled={loading} className="ap__btn-submit">
+                      {loading ? <><div className="ap__spinner" />Saving...</> : editType ? <><Pencil size={14} />Save Changes</> : <><Plus size={14} />Add Service Type</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete service type "${confirmDelete?.label}"?`}
+        onConfirm={() => doDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}
+
 // ── Estimator Tab (admin-managed cities, tiers, add-ons, construction types) ──
 
 const EST_SUBTABS = [
@@ -3410,6 +3852,7 @@ export default function AdminPanel() {
     clients: <ClientsTab />,
     contractors: <ContractorsTab />,
     inquiries: <InquiriesTab />,
+    'property-requests': <PropertyRequestsTab />,
     estimator: <EstimatorConfigTab />,
     analytics: <AnalyticsTab />,
     settings: <SettingsTab />,

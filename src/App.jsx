@@ -7,6 +7,7 @@ import Layout from './components/layout/Layout'
 import HomePage   from './pages/HomePage'
 import LoginPage  from './pages/LoginPage'
 import EstimatorPage from './pages/EstimatorPage'
+import PropertyServicePage from './pages/PropertyServicePage'
 import ContractorDashboard from './pages/ContractorDashboard'
 import ClientDashboard from './pages/ClientDashboard'
 import AdminPanel from './pages/AdminPanel'
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/" element={<Layout><HomePage /></Layout>} />
         {/* <Route path="/coming-soon" element={<ComingSoon />} /> */}
         <Route path="/estimator"  element={<EstimatorPage />} />
+        <Route path="/property-services" element={<PropertyServicePage />} />
         <Route path="/login"      element={<LoginPage />} />
 
         <Route path="/portfolio/:category" element={<CategoryPage />} />

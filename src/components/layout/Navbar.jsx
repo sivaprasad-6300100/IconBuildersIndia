@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, ChevronDown, Phone, LogOut, LayoutDashboard } from 'lucide-react'
+import { Menu, X, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const NAV_LINKS = [
@@ -96,18 +96,19 @@ export default function Navbar() {
         }
 
         .nb__inner {
-          max-width: 1280px;
+          max-width: 1400px;
           margin: 0 auto;
           padding: 0 1.25rem;
         }
         @media (min-width: 640px)  { .nb__inner { padding: 0 2rem; } }
-        @media (min-width: 1024px) { .nb__inner { padding: 0 2.5rem; } }
+        @media (min-width: 1024px) { .nb__inner { padding: 0 2rem; } }
 
         .nb__row {
           display: flex;
           align-items: center;
           justify-content: space-between;
           height: 4.5rem;
+          gap: 0.75rem;
         }
 
         /* ── Logo ── */
@@ -120,8 +121,8 @@ export default function Navbar() {
         }
         .nb__logo {
           position: relative;
-          width: 2.5rem;
-          height: 2.75rem;
+          width: 4.2rem;
+          height: 4rem;
           flex-shrink: 0;
           transition: transform 0.3s ease;
         }
@@ -132,6 +133,7 @@ export default function Navbar() {
           font-size: 1.25rem;
           letter-spacing: -0.02em;
           line-height: 1;
+          white-space: nowrap;
         }
         .nb__brand-cream { color: #e8d5a3; }
         .nb__brand-gold { color: #c9a84c; }
@@ -142,20 +144,23 @@ export default function Navbar() {
           color: #8fa3b8;
           line-height: 1;
           margin-top: 0.25rem;
+          white-space: nowrap;
         }
 
         /* ── Desktop nav links ── */
         .nb__links {
           display: none;
           align-items: center;
-          gap: 0.375rem;
+          gap: 0.2rem;
+          flex-shrink: 1;
+          min-width: 0;
         }
-        @media (min-width: 1024px) { .nb__links { display: flex; } }
+        @media (min-width: 1280px) { .nb__links { display: flex; } }
 
         .nb__link {
           position: relative;
-          padding: 0.6rem 1rem;
-          font-size: 0.875rem;
+          padding: 0.6rem 0.85rem;
+          font-size: 0.83rem;
           font-weight: 500;
           border-radius: 0.5rem;
           background: none;
@@ -164,6 +169,8 @@ export default function Navbar() {
           color: rgba(232,213,163,0.7);
           transition: color 0.2s ease;
           font-family: inherit;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
         .nb__link:hover { color: #e8d5a3; }
         .nb__link--active { color: #c9a84c; }
@@ -186,22 +193,51 @@ export default function Navbar() {
         .nb__actions {
           display: none;
           align-items: center;
-          gap: 0.65rem;
+          gap: 0.55rem;
+          flex-shrink: 0;
         }
-        @media (min-width: 1024px) { .nb__actions { display: flex; } }
+        @media (min-width: 1280px) { .nb__actions { display: flex; } }
+
+        .nb__divider {
+          width: 1px;
+          height: 1.5rem;
+          background: rgba(201,168,76,0.15);
+          flex-shrink: 0;
+        }
+
+        .nb__secondary-link {
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          padding: 0 0.85rem;
+          font-size: 0.83rem;
+          font-weight: 500;
+          color: rgba(232,213,163,0.75);
+          text-decoration: none;
+          border-radius: 0.5rem;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+        .nb__secondary-link:hover {
+          color: #c9a84c;
+          background: rgba(201,168,76,0.06);
+        }
 
         .nb__estimate {
           height: 2.5rem;
           display: flex;
           align-items: center;
           padding: 0 1rem;
-          font-size: 0.875rem;
+          font-size: 0.83rem;
           font-weight: 600;
           color: #c9a84c;
           border: 1px solid rgba(201,168,76,0.3);
           border-radius: 0.5rem;
           text-decoration: none;
           transition: all 0.2s ease;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
         .nb__estimate:hover {
           background: rgba(201,168,76,0.1);
@@ -212,42 +248,25 @@ export default function Navbar() {
           height: 2.5rem;
           display: flex;
           align-items: center;
-          padding: 0 1.25rem;
+          padding: 0 1.15rem;
           border-radius: 0.5rem;
-          font-size: 0.875rem;
+          font-size: 0.83rem;
           font-weight: 700;
           background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
           color: #071422;
           text-decoration: none;
           box-shadow: 0 0 16px rgba(201,168,76,0.25);
           transition: all 0.2s ease;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
         .nb__login:hover {
           box-shadow: 0 0 24px rgba(201,168,76,0.4);
           transform: translateY(-2px);
         }
 
-        .nb__whatsapp {
-          height: 2.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0 0.85rem;
-          border-radius: 0.5rem;
-          background: rgba(37,211,102,0.1);
-          border: 1px solid rgba(37,211,102,0.2);
-          color: #25D366;
-          font-size: 0.875rem;
-          font-weight: 500;
-          text-decoration: none;
-          transition: all 0.2s ease;
-        }
-        .nb__whatsapp:hover { background: rgba(37,211,102,0.2); }
-        .nb__whatsapp-label { display: none; }
-        @media (min-width: 1280px) { .nb__whatsapp-label { display: inline; } }
-
         /* ── User menu ── */
-        .nb__user-wrap { position: relative; }
+        .nb__user-wrap { position: relative; flex-shrink: 0; }
         .nb__user-btn {
           height: 2.5rem;
           display: flex;
@@ -259,6 +278,7 @@ export default function Navbar() {
           border: 1px solid rgba(201,168,76,0.2);
           cursor: pointer;
           transition: background 0.2s ease;
+          white-space: nowrap;
         }
         .nb__user-btn:hover { background: rgba(201,168,76,0.2); }
 
@@ -288,6 +308,7 @@ export default function Navbar() {
         .nb__chevron {
           color: #c9a84c;
           transition: transform 0.2s ease;
+          flex-shrink: 0;
         }
         .nb__chevron--open { transform: rotate(180deg); }
 
@@ -364,9 +385,10 @@ export default function Navbar() {
           color: #c9a84c;
           cursor: pointer;
           transition: background 0.2s ease;
+          flex-shrink: 0;
         }
         .nb__burger:hover { background: rgba(201,168,76,0.1); }
-        @media (min-width: 1024px) { .nb__burger { display: none; } }
+        @media (min-width: 1280px) { .nb__burger { display: none; } }
 
         /* ── Mobile menu ── */
         .nb__mobile {
@@ -379,10 +401,10 @@ export default function Navbar() {
           border-top: 1px solid rgba(201,168,76,0.1);
         }
         .nb__mobile--open {
-          max-height: 600px;
+          max-height: 700px;
           opacity: 1;
         }
-        @media (min-width: 1024px) { .nb__mobile { display: none; } }
+        @media (min-width: 1280px) { .nb__mobile { display: none; } }
 
         .nb__mobile-inner {
           padding: 1rem 1.25rem;
@@ -452,12 +474,6 @@ export default function Navbar() {
           background: transparent;
         }
         .nb__mobile-btn--danger:hover { background: rgba(248,113,113,0.05); }
-        .nb__mobile-btn--whatsapp {
-          color: #25D366;
-          border: 1px solid rgba(37,211,102,0.2);
-          background: transparent;
-        }
-        .nb__mobile-btn--whatsapp:hover { background: rgba(37,211,102,0.1); }
 
         .nb__spacer { height: 4.5rem; }
       `}</style>
@@ -503,7 +519,7 @@ export default function Navbar() {
                   <span className="nb__brand-cream">ICON</span>
                   <span className="nb__brand-gold">BUILDERS</span>
                 </div>
-                <div className="nb__brand-sub">AI-Powered Platform</div>
+                {/* <div className="nb__brand-sub">AI-Powered Platform</div> */}
               </div>
             </Link>
 
@@ -527,9 +543,14 @@ export default function Navbar() {
 
             {/* Right side actions */}
             <div className="nb__actions">
+              <Link to="/property-services" className="nb__estimate">
+                Property Services
+              </Link>
               <Link to="/estimator" className="nb__estimate">
                 Free Estimate
               </Link>
+
+              <div className="nb__divider" />
 
               {isAuthenticated ? (
                 <div className="nb__user-wrap" ref={userMenuRef}>
@@ -567,16 +588,6 @@ export default function Navbar() {
                   Login
                 </Link>
               )}
-
-              <a
-                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nb__whatsapp"
-              >
-                <Phone size={13} />
-                <span className="nb__whatsapp-label">WhatsApp</span>
-              </a>
             </div>
 
             {/* Mobile hamburger */}
@@ -608,6 +619,9 @@ export default function Navbar() {
             })}
 
             <div className="nb__mobile-actions">
+              <Link to="/property-services" className="nb__mobile-btn nb__mobile-btn--outline">
+                Property Services
+              </Link>
               <Link to="/estimator" className="nb__mobile-btn nb__mobile-btn--outline">
                 Free Estimate
               </Link>
@@ -626,15 +640,6 @@ export default function Navbar() {
                   Login
                 </Link>
               )}
-
-              <a
-                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nb__mobile-btn nb__mobile-btn--whatsapp"
-              >
-                📱 Chat on WhatsApp
-              </a>
             </div>
           </div>
         </div>
