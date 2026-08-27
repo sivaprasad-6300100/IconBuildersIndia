@@ -194,6 +194,20 @@ export default function PropertyServicePage() {
     return () => { cancelled = true }
   }, [])
 
+    // ── Refetch prices for the detected city as the pin/search moves ─────────
+  useEffect(() => {
+    if (!city) return
+    const timer = setTimeout(async () => {
+      try {
+        const data = await getServiceTypesConfig(city)
+        setConfig(data)
+      } catch {
+        // keep showing whatever prices are already displayed
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [city])
+
   const serviceTypes = config?.service_types || []
   const selectedType = serviceTypes.find((s) => s.id === serviceTypeId) || null
   const needsArea = selectedType?.pricing_mode === 'per_sqft'

@@ -2427,6 +2427,97 @@ function PropertyRequestsList() {
   )
 }
 
+function CityPricingEditor({ serviceType, onClose }) {
+  const [prices, setPrices] = useState([])
+  const [fetched, setFetched] = useState(false)
+  const [cityName, setCityName] = useState('')
+  const [price, setPrice] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const fetchPrices = async () => {
+    try {
+      const res = await api.get(`/api/service-requests/admin/city-prices/?service_type=${serviceType.id}`)
+      setPrices(res.data)
+    } catch {
+      toast.error('Failed to load city prices')
+    }
+    setFetched(true)
+  }
+
+  useEffect(() => { fetchPrices() }, [])
+
+  const addPrice = async () => {
+    if (!cityName.trim()) { toast.error('Enter a city name'); return }
+    if (!price) { toast.error('Enter a price'); return }
+    setSaving(true)
+    try {
+      const payload = { service_type: serviceType.id, city_name: cityName.trim() }
+      if (serviceType.pricing_mode === 'flat') payload.flat_price = Number(price)
+      else payload.price_per_sqft = Number(price)
+
+      const res = await api.post('/api/service-requests/admin/city-prices/', payload)
+      setPrices((prev) => {
+        const exists = prev.some((p) => p.city_name === res.data.city_name)
+        return exists
+          ? prev.map((p) => (p.city_name === res.data.city_name ? res.data : p))
+          : [...prev, res.data]
+      })
+      setCityName(''); setPrice('')
+      toast.success('City price saved')
+    } catch (err) {
+      const msg = err.response?.data?.non_field_errors?.[0]
+        || err.response?.data?.city_name?.[0]
+        || err.response?.data?.detail
+        || 'Failed to save city price'
+      toast.error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removePrice = async (id) => {
+    try {
+      await api.delete(`/api/service-requests/admin/city-prices/${id}/`)
+      setPrices((prev) => prev.filter((p) => p.id !== id))
+    } catch {
+      toast.error('Failed to remove city price')
+    }
+  }
+
+  return (
+    <div className="ap__list-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p className="ap__list-name">{serviceType.label} — City Prices</p>
+        <button onClick={onClose} className="ap__action-btn"><X size={13} /></button>
+      </div>
+
+      {prices.length === 0 && fetched && (
+        <p style={{ color: '#8fa3b8', fontSize: '0.8rem' }}>
+          No city overrides yet — {serviceType.label} uses the default price everywhere.
+        </p>
+      )}
+      {prices.map((p) => (
+        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+          <span style={{ textTransform: 'capitalize' }}>{p.city_name}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#c9a84c', fontWeight: 700 }}>
+              ₹{Number(p.flat_price ?? p.price_per_sqft).toLocaleString('en-IN')}
+              {p.price_per_sqft ? '/sq.ft' : ''}
+            </span>
+            <button onClick={() => removePrice(p.id)} className="ap__action-btn ap__action-btn--danger"><Trash2 size={12} /></button>
+          </span>
+        </div>
+      ))}
+
+      <div className="ap__phone-row">
+        <input value={cityName} onChange={(e) => setCityName(e.target.value)} placeholder="City (e.g. Hyderabad)" className="ap__form-input" style={{ flex: 1 }} />
+        <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={serviceType.pricing_mode === 'flat' ? 'Flat price' : '₹/sq.ft'} className="ap__form-input" style={{ flex: 1 }} />
+        <button onClick={addPrice} disabled={saving} className="ap__btn-gold" style={{ padding: '0 0.9rem' }}><Plus size={14} /></button>
+      </div>
+    </div>
+  )
+}
+
 // Admin-configurable service types — the prices customers see on the public
 // property-services page come directly from here.
 function ServiceTypesPanel() {
@@ -2437,6 +2528,7 @@ function ServiceTypesPanel() {
   const [editType, setEditType] = useState(null)
   const [form, setForm] = useState({ label: '', description: '', pricing_mode: 'per_sqft', flat_price: '', price_per_sqft: '', icon: 'wall' })
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [expandedType, setExpandedType] = useState(null)
 
   const fetchTypes = async () => {
     try {
@@ -2548,29 +2640,37 @@ function ServiceTypesPanel() {
           <div className="ap__empty-card"><p>No service types yet. Click "Add Service Type" to create one.</p></div>
         )}
         {types.map((t, i) => (
-          <motion.div key={t.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="ap__list-card">
-            <div className="ap__list-icon-box"><MapPin size={16} color="#c9a84c" /></div>
-            <div className="ap__list-info">
-              <p className="ap__list-name">{t.label}</p>
-              <p className="ap__list-sub">{t.description || (t.pricing_mode === 'flat' ? 'Flat price' : 'Price per sq.ft')}</p>
-            </div>
-            {t.pricing_mode === 'flat' ? (
-              <InlineNumber value={t.flat_price || 0} onSave={(v) => updateRate(t, 'flat_price', v)} />
-            ) : (
-              <InlineNumber value={t.price_per_sqft || 0} suffix="/sq.ft" onSave={(v) => updateRate(t, 'price_per_sqft', v)} />
+          <div key={t.id}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="ap__list-card">
+              <div className="ap__list-icon-box"><MapPin size={16} color="#c9a84c" /></div>
+              <div className="ap__list-info">
+                <p className="ap__list-name">{t.label}</p>
+                <p className="ap__list-sub">{t.description || (t.pricing_mode === 'flat' ? 'Flat price' : 'Price per sq.ft')}</p>
+              </div>
+              {t.pricing_mode === 'flat' ? (
+                <InlineNumber value={t.flat_price || 0} onSave={(v) => updateRate(t, 'flat_price', v)} />
+              ) : (
+                <InlineNumber value={t.price_per_sqft || 0} suffix="/sq.ft" onSave={(v) => updateRate(t, 'price_per_sqft', v)} />
+              )}
+              <div className="ap__row-actions">
+                <StatusBadge status={t.is_active ? 'Active' : 'Inactive'} />
+                <button onClick={() => setExpandedType(expandedType === t.id ? null : t.id)} className="ap__approve-btn">
+                  {expandedType === t.id ? 'Hide Cities' : 'City Prices'}
+                </button>
+                <button onClick={() => openEdit(t)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
+                <button
+                  onClick={() => toggleActive(t)}
+                  className={t.is_active ? 'ap__deactivate-btn' : 'ap__approve-btn'}
+                >
+                  {t.is_active ? 'Hide' : 'Show'}
+                </button>
+                <button onClick={() => setConfirmDelete(t)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
+              </div>
+            </motion.div>
+            {expandedType === t.id && (
+              <CityPricingEditor serviceType={t} onClose={() => setExpandedType(null)} />
             )}
-            <div className="ap__row-actions">
-              <StatusBadge status={t.is_active ? 'Active' : 'Inactive'} />
-              <button onClick={() => openEdit(t)} className="ap__action-btn" title="Edit"><Pencil size={13} /></button>
-              <button
-                onClick={() => toggleActive(t)}
-                className={t.is_active ? 'ap__deactivate-btn' : 'ap__approve-btn'}
-              >
-                {t.is_active ? 'Hide' : 'Show'}
-              </button>
-              <button onClick={() => setConfirmDelete(t)} className="ap__action-btn ap__action-btn--danger" title="Delete"><Trash2 size={13} /></button>
-            </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 

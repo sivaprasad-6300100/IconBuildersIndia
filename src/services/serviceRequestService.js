@@ -1,19 +1,20 @@
 import api from './api'
 
 // ── Public — get active service types + admin-set prices ─────────────────────
-export const getServiceTypesConfig = async () => {
-  const res = await api.get('/api/service-requests/config/')
+
+export const getServiceTypesConfig = async (city) => {
+  const res = await api.get('/api/service-requests/config/', {
+    params: city ? { city } : {},
+  })
   return res.data
   // returns { service_types: [{ id, key, label, description, icon, pricing_mode, flat_price, price_per_sqft }] }
 }
 
 // ── Public — submit a property service request (guest, no login) ─────────────
-export const submitServiceRequest = async (data) => {
-  // data = { name, phone, email, address, latitude, longitude,
-  //          service_type, area_sqft, requirement_text, source }
-  const res = await api.post('/api/service-requests/submit/', data)
+
+export const submitServiceRequest = async (data, options = {}) => {
+  const res = await api.post('/api/service-requests/submit/', data, options)
   return res.data
-  // returns { message, reference, estimated_price }
 }
 
 // ── Admin — get all service requests ──────────────────────────────────────────
