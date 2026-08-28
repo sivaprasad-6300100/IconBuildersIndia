@@ -544,7 +544,7 @@ export default function Navbar() {
             {/* Right side actions */}
             <div className="nb__actions">
               <Link to="/property-services" className="nb__estimate">
-                Property Services
+                Plot Square
               </Link>
               <Link to="/estimator" className="nb__estimate">
                 Free Estimate
