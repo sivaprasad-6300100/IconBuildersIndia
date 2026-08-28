@@ -620,7 +620,7 @@ export default function Navbar() {
 
             <div className="nb__mobile-actions">
               <Link to="/property-services" className="nb__mobile-btn nb__mobile-btn--outline">
-                Property Services
+                Plot Square
               </Link>
               <Link to="/estimator" className="nb__mobile-btn nb__mobile-btn--outline">
                 Free Estimate
